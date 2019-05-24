@@ -67,7 +67,14 @@ void World::Move(float forw, float right)
 {
 	float dirx = Sin(cam.rotation);
 	float dirz = Cos(cam.rotation);
-	cam.pos += sf::Vector3f(forw*dirx+right*dirz,0,forw*dirz-right*dirx);
+	sf::Vector3f ldir = sf::Vector3f(forw * dirx + right * dirz, 0, forw * dirz - right * dirx);
+	if (blocks[(int)(cam.pos.x+ldir.x)][(int)cam.pos.y][(int)cam.pos.z].textureID != 0)
+		ldir.x = 0;
+	if (blocks[(int)cam.pos.x][(int)(cam.pos.y+ldir.y)][(int)cam.pos.z].textureID != 0)
+		ldir.y = 0;
+	if (blocks[(int)cam.pos.x][(int)cam.pos.y][(int)(cam.pos.z+ldir.z)].textureID != 0)
+		ldir.z = 0;
+	cam.pos += ldir;
 	//std::cout << cam.pos.x << "; " << cam.pos.y << "; " << cam.pos.z << "\n";
 }
 
