@@ -30,9 +30,8 @@ private:
 	float Sin(float angle);
 	sf::Color Raycast(sf::Vector3f ldir, float rayAngle);
 	float* sines = new float[2160];
-	unsigned int maxIter = 40;
+	unsigned int maxIter = 20;
 	Camera cam;
-	const int colorMults = 50;
 	sf::Color* colors = new sf::Color[10];
-	sf::Color* colorMult = new sf::Color[colorMults];
+	sf::Image* textures = new sf::Image[10];
 };
