@@ -61,7 +61,7 @@ void World::Turn(float angle)
 {
 	cam.rotation += angle;
 	cam.rotation = LoopAngle(cam.rotation);
-	std::cout << cam.rotation << "\n";
+	//std::cout << cam.rotation << "\n";
 }
 
 void World::LookUp(float angle)
