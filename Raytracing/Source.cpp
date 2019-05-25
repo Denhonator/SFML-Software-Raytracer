@@ -8,11 +8,15 @@ unsigned int lastIndex = 0;
 const unsigned int width = 320;
 const unsigned int height = 180;
 bool run = true;
+bool draw[4] = { false,false,false,false };
 
-void RenderThread(int xoff, int yoff) {
+void RenderThread(int num) {
 	while (run) {
-		world.UpdateScreenVertex(&screenVertex, xoff, yoff);
-		sf::sleep(sf::Time(sf::milliseconds(15)));
+		if (draw[num]) {
+			world.UpdateScreenVertex(&screenVertex, num & 2 ? 1 : 0, num & 1 ? 1 : 0);
+			draw[num] = false;
+		}
+		sf::sleep(sf::Time(sf::milliseconds(1)));
 	}
 }
 
@@ -30,14 +34,14 @@ void main() {
 	for (unsigned int i = 0; i < width; i++) {
 		for (unsigned int j = 0; j < height; j++) {
 			unsigned int index = i + width * j;
-			screenVertex[index].position = sf::Vector2f(i, j);
+			screenVertex[index].position = sf::Vector2f(i, j+1);
 		}
 	}
 
-	std::thread p1 = std::thread(&RenderThread, 0, 0);
-	std::thread p2 = std::thread(&RenderThread, 0, 1);
-	std::thread p3 = std::thread(&RenderThread, 1, 0);
-	std::thread p4 = std::thread(&RenderThread, 1, 1);
+	std::thread p1 = std::thread(&RenderThread, 0);
+	std::thread p2 = std::thread(&RenderThread, 1);
+	std::thread p3 = std::thread(&RenderThread, 2);
+	std::thread p4 = std::thread(&RenderThread, 3);
 
 	while (window.isOpen())
 	{
@@ -48,18 +52,27 @@ void main() {
 				window.close();
 		}
 
+		float speed = sf::Keyboard::isKeyPressed(sf::Keyboard::LShift) ? 0.08f : 0.04;
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
-			world.Move(0,-0.05f);
+			world.Move(0,-speed);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
-			world.Move(0,0.05f);
+			world.Move(0, speed);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
-			world.Move(0.05f,0);
+			world.Move(speed,0);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
-			world.Move(-0.05f,0);
+			world.Move(-speed,0);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
-			world.Turn(-2);
+			world.Turn(-speed * 20);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
-			world.Turn(2);
+			world.Turn(speed * 20);
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
+			world.LookUp(speed * 30);
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
+			world.LookUp(-speed * 30);
+
+		draw[0] = true; draw[1] = true; draw[2] = true; draw[3] = true;	//Draw in 4 threads here and only here
+		while (draw[0] || draw[1] || draw[2] || draw[3])
+			sf::sleep(sf::milliseconds(1));
 
 		screenTexture.draw(screenVertex);
 		screenTexture.display();
