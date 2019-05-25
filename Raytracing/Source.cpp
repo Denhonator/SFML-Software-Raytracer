@@ -5,7 +5,7 @@ sf::VertexArray screenVertex;
 sf::RenderTexture screenTexture;
 World world;
 unsigned int lastIndex = 0;
-const unsigned int width = 320;
+const unsigned int width = 320;		//Raycast + screen texture resolution
 const unsigned int height = 180;
 bool run = true;
 bool draw[4] = { false,false,false,false };
@@ -29,7 +29,7 @@ void main() {
 	world.height = height;
 
 	screenSprite.setTexture(screenTexture.getTexture());
-	screenSprite.setScale(window.getSize().x / width, window.getSize().y / height);
+	screenSprite.setScale(window.getSize().x / (float)width, window.getSize().y / (float)height);
 	screenVertex.resize(width * height);
 	for (unsigned int i = 0; i < width; i++) {
 		for (unsigned int j = 0; j < height; j++) {
