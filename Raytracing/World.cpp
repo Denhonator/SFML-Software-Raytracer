@@ -8,7 +8,7 @@ World::World() {
 					blocks[x][y][z].textureID = 2;
 				if (y == 3 && x % 4 != 0 && z % 5 != 0)
 					blocks[x][y][z].textureID = 1;
-				else if ((x==0||x==9||z==0||z==9) || (x % 9 == 0 && z % 11 == 0))
+				else if ((x==0||x==29||z==0||z==29) || (x % 9 == 0 && z % 11 == 0))
 					blocks[x][y][z].textureID = 1;
 				if (y == 9)
 					blocks[x][y][z].textureID = 3;
@@ -39,8 +39,8 @@ void World::UpdateScreenVertex(sf::VertexArray* v, int xoff, int yoff)
 {
 	float hStart = (cam.hrotation + cam.fovV) / 180;
 	float hIncreaseBy = cam.fovV / 90 / height;
-	float vStart = cam.rotation - cam.fovV/2;
-	float vIncreaseBy = cam.fovV / width;
+	float vStart = cam.rotation - cam.fovH/2;
+	float vIncreaseBy = cam.fovH / width;
 	float rayAngle;
 	sf::Vector3f ldir;
 	for (int i = xoff; i < width; i+=2) {
@@ -198,9 +198,10 @@ sf::Color World::Raycast(sf::Vector3f ldir, float rayAngle)
 
 			dist = tryDist;
 			pos = tryPos;
+			if (pos.x < 0 || pos.y < 0 || pos.z < 0 || pos.x >= 30 || pos.y >= 10 || pos.z >= 30)
+				break;
 			block = &blocks[(int)pos.x][(int)pos.y][(int)pos.z];
 			if (block->textureID != 0) {
-				float darken = (2*dist + 2 * Sin(std::abs(rayAngle - cam.rotation))) * dist;
 				if (block->textureID < 0) {
 					c = colors[-block->textureID];
 				}
@@ -219,14 +220,14 @@ sf::Color World::Raycast(sf::Vector3f ldir, float rayAngle)
 						c = colors[1];
 					}*/
 				}
+				float darken = (2 * dist + 2 * Sin(std::abs(rayAngle - cam.rotation))) * dist;
 				c.r = std::max(0.0f, c.r - darken); c.g = std::max(0.0f, c.g - darken); c.b = std::max(0.0f, c.b - darken);
 				return c;
 			}
 		}
 		return colors[0];
 	}
-	catch (std::exception e) {
-		std::cout << e.what() << "\n";
+	catch (...) {
 		return colors[0];
 	}
 }
