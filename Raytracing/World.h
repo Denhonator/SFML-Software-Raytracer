@@ -7,8 +7,8 @@ struct Camera {
 	sf::Vector3f pos = { 15.5f, 1.5f, 15.5f };
 	float rotation = 0;
 	float hrotation = 0;
-	float fovH = 70;
-	float fovV = 70;
+	float fovH = 60;
+	float fovV = 36;
 };
 
 struct Block {
@@ -26,7 +26,6 @@ class World {
 public:
 	Block blocks[30][10][30];
 	void UpdateScreenVertex(sf::VertexArray* v, int xoff, int yoff);
-	void GetDir(float angle, sf::Vector3f* dir);
 	void Turn(float angle);
 	void LookUp(float angle);
 	void Move(float forw, float right, float up);

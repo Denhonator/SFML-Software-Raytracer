@@ -37,28 +37,26 @@ World::~World() {
 
 void World::UpdateScreenVertex(sf::VertexArray* v, int xoff, int yoff)
 {
-	float hStart = (cam.hrotation + cam.fovV) / 180;
-	float hIncreaseBy = cam.fovV / 90 / height;
-	float vStart = cam.rotation - cam.fovH/2;
-	float vIncreaseBy = cam.fovH / width;
-	float rayAngle;
+	float vStart = cam.hrotation + cam.fovV/2;
+	float vIncreaseBy = cam.fovV / height;
+	float hStart = cam.rotation - cam.fovH/2;
+	float hIncreaseBy = cam.fovH / width;
+	float hrayAngle;
+	float vrayAngle;
 	sf::Vector3f ldir;
 	for (int i = xoff; i < width; i+=2) {
-		rayAngle = vStart + vIncreaseBy*i;
-		if (rayAngle == 0 || rayAngle == 90 || rayAngle == 180 || rayAngle == 270 || rayAngle == 360)
-			rayAngle += 0.01f;		//Avoid straight lines
-		GetDir(rayAngle, &ldir);
+		hrayAngle = hStart + hIncreaseBy*i;
+		if (hrayAngle == 0 || hrayAngle == 90 || hrayAngle == 180 || hrayAngle == 270 || hrayAngle == 360)
+			hrayAngle += 0.01f;		//Avoid straight lines
+		ldir.x = Sin(hrayAngle); ldir.z = Cos(hrayAngle);
 		for (int j = yoff; j < height; j+=2) {
-			ldir.y = hStart - j*hIncreaseBy;
-			(*v)[i + j * width].color = Raycast(ldir,rayAngle);
+			vrayAngle = vStart - j * vIncreaseBy;
+			if (std::abs(vrayAngle) < 0.005f)
+				vrayAngle += 0.01f;
+			ldir.y = Sin(vrayAngle);
+			(*v)[i + j * width].color = Raycast(ldir,hrayAngle);
 		}
 	}
-}
-
-void World::GetDir(float angle, sf::Vector3f* dir)
-{
-	dir->z = Cos(angle);
-	dir->x = Sin(angle);
 }
 
 void World::Turn(float angle)
@@ -70,7 +68,7 @@ void World::Turn(float angle)
 
 void World::LookUp(float angle)
 {
-	if (std::abs(cam.hrotation + angle) + cam.fovV < 180)
+	if (std::abs(cam.hrotation + angle) + cam.fovV < 90)
 		cam.hrotation += angle;
 }
 
