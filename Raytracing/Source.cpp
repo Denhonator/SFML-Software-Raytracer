@@ -56,13 +56,13 @@ void main() {
 
 		float speed = sf::Keyboard::isKeyPressed(sf::Keyboard::LShift) ? 0.08f : 0.04;
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
-			world.Move(0,-speed);
+			world.Move(0,-speed,0);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
-			world.Move(0, speed);
+			world.Move(0, speed,0);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
-			world.Move(speed,0);
+			world.Move(speed,0,0);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
-			world.Move(-speed,0);
+			world.Move(-speed,0,0);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
 			world.Turn(-speed * 20);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
@@ -71,6 +71,10 @@ void main() {
 			world.LookUp(speed * 30);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
 			world.LookUp(-speed * 30);
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
+			world.Move(0, 0, speed);
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl))
+			world.Move(0, 0, -speed);
 
 		world.DynMove(0, sf::Vector3f((int)clock.getElapsedTime().asSeconds() % 2 - 0.5f, 0, (int)(clock.getElapsedTime().asSeconds() + 0.5f) % 2 -0.5f)*0.1f);
 

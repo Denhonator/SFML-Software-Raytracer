@@ -4,7 +4,7 @@
 #define PI 3.1415926535f
 
 struct Camera {
-	sf::Vector3f pos = { 50.5f, 1.5f, 50.5f };
+	sf::Vector3f pos = { 15.5f, 1.5f, 15.5f };
 	float rotation = 0;
 	float hrotation = 0;
 	float fovH = 70;
@@ -17,19 +17,19 @@ struct Block {
 
 struct Dynamic {
 	short textureID = 0;
-	sf::Vector3f pos = { 50.5f, 1.3f, 52.0f };
+	sf::Vector3f pos = { 15.5f, 1.3f, 16.0f };
 	sf::Vector2f size = sf::Vector2f(0.1f, 0.3f);
 	float distToCamera = 1000;
 };
 
 class World {
 public:
-	Block blocks[100][3][100];
+	Block blocks[30][10][30];
 	void UpdateScreenVertex(sf::VertexArray* v, int xoff, int yoff);
 	void GetDir(float angle, sf::Vector3f* dir);
 	void Turn(float angle);
 	void LookUp(float angle);
-	void Move(float forw, float right);
+	void Move(float forw, float right, float up);
 	void DynMove(unsigned int index, sf::Vector3f dir);
 	int width = 320;
 	int height = 180;
@@ -48,7 +48,7 @@ private:
 	float VLength(sf::Vector3f v);
 	sf::Color Raycast(sf::Vector3f ldir, float rayAngle);
 	float* sines = new float[2160];
-	unsigned int maxIter = 20;
+	unsigned int maxIter = 13;
 	Camera cam;
 	sf::Color* colors = new sf::Color[10];
 	sf::Image* textures = new sf::Image[10];
