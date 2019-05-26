@@ -5,8 +5,9 @@ sf::VertexArray screenVertex;
 sf::RenderTexture screenTexture;
 World world;
 unsigned int lastIndex = 0;
-const unsigned int width = 320;		//Raycast + screen texture resolution
-const unsigned int height = 180;
+const unsigned int width = 640;		//Raycast + screen texture resolution
+const unsigned int height = 360;
+const unsigned int cyclesPerFrame = 2;
 bool run = true;
 short draw[4] = { 0,0,0,0 };
 
@@ -80,7 +81,7 @@ void main() {
 
 		world.DynMove(0, sf::Vector3f((int)clock.getElapsedTime().asSeconds() % 2 - 0.5f, 0, (int)(clock.getElapsedTime().asSeconds() + 0.5f) % 2 -0.5f)*0.1f);
 
-		draw[0] = 2; draw[1] = 2; draw[2] = 2; draw[3] = 2;	//Draw in 4 threads here and only here
+		draw[0] = cyclesPerFrame; draw[1] = cyclesPerFrame; draw[2] = cyclesPerFrame; draw[3] = cyclesPerFrame;	//Draw in 4 threads here and only here
 		while (draw[0] || draw[1] || draw[2] || draw[3])
 			sf::sleep(sf::milliseconds(1));
 

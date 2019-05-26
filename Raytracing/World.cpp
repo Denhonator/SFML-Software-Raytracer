@@ -114,83 +114,99 @@ float World::Cos(float angle)
 	return sines[(int)(angle * 6)];
 }
 
-float World::Sin(float angle)
+inline float World::Sin(float angle)
 {
-	angle = LoopAngle(angle);
-	return sines[(int)(angle * 6)];
+	return sines[(int)(LoopAngle(angle) * 6)];
 }
 
-float World::LoopAngle(float angle)
+inline float World::LoopAngle(float angle)
 {
 	return angle > 360 ? angle - 360 : (angle < 0 ? angle + 360 : angle);
 }
 
-float World::VAngle(sf::Vector2f a, sf::Vector2f b)
+inline float World::VAngle(sf::Vector2f a, sf::Vector2f b)
 {
 	return 180*std::acosf(a.x * b.x + a.y * b.y)/PI;
 }
 
-sf::Vector2f World::VNormalize(sf::Vector2f v)
+inline sf::Vector2f World::VNormalize(sf::Vector2f v)
 {
 	return v / VLength(v);
 }
 
-float World::VLength(sf::Vector2f v)
+inline float World::VLength(sf::Vector2f v)
 {
 	return std::sqrtf(v.x * v.x + v.y * v.y);
 }
 
-float World::VAngleXZ(sf::Vector3f a, sf::Vector3f b)
+inline float World::VAngleXZ(sf::Vector3f a, sf::Vector3f b)
 {
 	float ang = std::atan2(b.z,b.x) - std::atan2(a.z,a.x);
 	return ang >= PI ? ang - 2 * PI : (ang < -PI ? ang + 2 * PI : ang);
 }
 
-sf::Vector3f World::VNormalize(sf::Vector3f v)
+inline sf::Vector3f World::VNormalize(sf::Vector3f v)
 {
 	return v / VLength(v);
 }
 
-float World::VLength(sf::Vector3f v)
+inline sf::Vector3f World::VNormalizeXZ(sf::Vector3f v)
+{
+	return v / VLengthXZ(v);
+}
+
+inline float World::VLength(sf::Vector3f v)
 {
 	return std::sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
 }
 
+inline float World::VLengthXZ(sf::Vector3f v)
+{
+	return std::sqrtf(v.x*v.x+v.z*v.z);
+}
+
 void World::Raycast(Ray* r)
 {
-	Block* block;
-	sf::Image* tex;
 	bool dynPassed = false;
 
 	float dist = 0;
-	float tryDist = 0;
 	sf::Vector3f pos = cam.pos;
 	sf::Vector3f tryPos = pos;
 	sf::Vector3f dir = r->dir;
+	float dirxadd = dir.x > 0 ? 1.0f : 0;
+	float diryadd = dir.y > 0 ? 1.0f : 0;
+	float dirzadd = dir.z > 0 ? 1.0f : 0;
+	short dirxsign = dir.x > 0 ? -1 : 1;
+	short dirysign = dir.y > 0 ? -1 : 1;
+	short dirzsign = dir.z > 0 ? -1 : 1;
+	float dirxlen = std::abs(dir.x);
+	float dirylen = std::abs(dir.y);
+	float dirzlen = std::abs(dir.z);
 
 	for (unsigned int i = 0; i < maxIter; i++) {
-		float raySpeed = std::min(std::min(	(dir.x > 0 ? 1.0f - (pos.x - (int)pos.x) : (pos.x - (int)pos.x)) / std::abs(dir.x),
-											(dir.y > 0 ? 1.0f - (pos.y - (int)pos.y) : (pos.y - (int)pos.y)) / std::abs(dir.y)),
-											(dir.z > 0 ? 1.0f - (pos.z - (int)pos.z) : (pos.z - (int)pos.z)) / std::abs(dir.z));
+		float raySpeed = std::min({ (dirxadd + dirxsign * (pos.x - (int)pos.x)) / dirxlen,
+									(diryadd + dirysign * (pos.y - (int)pos.y)) / dirylen,
+									(dirzadd + dirzsign * (pos.z - (int)pos.z)) / dirzlen });
 		raySpeed += 0.002f;
-		tryDist = dist + raySpeed;
-		tryPos = pos + dir * raySpeed;
+		float tryDist = dist + raySpeed;
+		tryPos += dir * raySpeed;
 
 		if (!dynPassed && tryDist >= dyn[0].distToCamera) {			//Dynamic objects
-			raySpeed = (dyn[0].distToCamera - dist);
+			raySpeed = (dyn[0].distToCamera - dist);				//Reduce rayspeed to hit object
 			dist = dyn[0].distToCamera;
-			pos += dir * raySpeed;
-			sf::Vector3f to = dyn[0].pos-pos;
+			pos += dir * raySpeed;									//Set new position
+			sf::Vector3f to = dyn[0].pos-pos;						//Vector from ray pos to object pos (middle, y ignored)
 			float w = to.x * to.x + to.z * to.z;
 			if (std::abs(to.y) < dyn[0].size.y && (w < dyn[0].size.x)) {
-				float ang = VAngleXZ(dir, VNormalize(dyn[0].pos - cam.pos))*dist;
+				float ang = VAngleXZ(dir, VNormalizeXZ(dyn[0].pos - cam.pos))*dist;
 				sf::Image* tex = &dynTextures[dyn[0].textureID];
-				int x = (0.5f + ang / PI * 0.5f / dyn[0].size.x) * (tex->getSize().x-1);
-				int y = (dyn[0].size.y + to.y) / dyn[0].size.y / 2 * (tex->getSize().y-1);
+				sf::Vector2u tsize = tex->getSize();
+				int x = (0.5f + ang / PI * 0.5f / dyn[0].size.x) * (tsize.x-1);
+				int y = (dyn[0].size.y + to.y) / dyn[0].size.y / 2 * (tsize.y-1);
 				x = std::max(x, 0); y = std::max(y, 0);
 				sf::Color c = tex->getPixel(x,y);
 				if (c.a > 127) {				//Transparency check
-					float darken = (2*dist + 2 * Sin(std::abs(r->angle - cam.rotation))) * dist;
+					float darken = (1.5f * dist + 2 * Sin(std::abs(r->angle - cam.rotation))) * dist;
 					c.r = std::max(0.0f, c.r - darken); c.g = std::max(0.0f, c.g - darken); c.b = std::max(0.0f, c.b - darken);
 					r->c = c;
 					return;
@@ -203,28 +219,29 @@ void World::Raycast(Ray* r)
 		pos = tryPos;
 		if (pos.x < 0 || pos.y < 0 || pos.z < 0 || pos.x >= 30 || pos.y >= 10 || pos.z >= 30)
 			break;
-		block = &blocks[(int)pos.x][(int)pos.y][(int)pos.z];
+		Block* block = &blocks[(int)pos.x][(int)pos.y][(int)pos.z];
 		if (block->textureID != 0) {
 			sf::Color c;
 			if (block->textureID < 0) {
 				c = colors[-block->textureID];
 			}
 			else {		//Get color from texture with coordinates
-				tex = &textures[block->textureID - 1];
+				sf::Image* tex = &textures[block->textureID - 1];
+				sf::Vector2u tsize = tex->getSize();
 				if (pos.x - (int)pos.x < 0.01f || pos.x - (int)pos.x > 0.99f) {
-					c = tex->getPixel(tex->getSize().x * (pos.z-(int)pos.z), tex->getSize().y * (pos.y-(int)pos.y));
+					c = tex->getPixel(tsize.x * (pos.z-(int)pos.z), tsize.y * (pos.y-(int)pos.y));
 				}
 				else if (pos.y - (int)pos.y < 0.01f || pos.y - (int)pos.y > 0.99f) {
-					c = tex->getPixel(tex->getSize().x * (pos.x-(int)pos.x), tex->getSize().y * (pos.z-(int)pos.z));
+					c = tex->getPixel(tsize.x * (pos.x-(int)pos.x), tsize.y * (pos.z-(int)pos.z));
 				}
 				else if (pos.z - (int)pos.z < 0.01f || pos.z - (int)pos.z > 0.99f) {
-					c = tex->getPixel(tex->getSize().x * (pos.x-(int)pos.x), tex->getSize().y * (pos.y-(int)pos.y));
+					c = tex->getPixel(tsize.x * (pos.x-(int)pos.x), tsize.y * (pos.y-(int)pos.y));
 				}
 				/*else {
 					c = colors[1];
 				}*/
 			}
-			float darken = (2 * dist + 2 * Sin(std::abs(r->angle - cam.rotation))) * dist;
+			float darken = (1.5f * dist + 2 * Sin(std::abs(r->angle - cam.rotation))) * dist;
 			c.r = std::max(0.0f, c.r - darken); c.g = std::max(0.0f, c.g - darken); c.b = std::max(0.0f, c.b - darken);
 			r->c = c;
 			return;

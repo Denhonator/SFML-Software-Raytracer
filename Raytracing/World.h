@@ -50,10 +50,12 @@ private:
 	float VLength(sf::Vector2f v);
 	float VAngleXZ(sf::Vector3f a, sf::Vector3f b);
 	sf::Vector3f VNormalize(sf::Vector3f v);
+	sf::Vector3f VNormalizeXZ(sf::Vector3f v);
 	float VLength(sf::Vector3f v);
+	float VLengthXZ(sf::Vector3f v);
 	void Raycast(Ray* r);
 	float* sines = new float[2160];
-	unsigned int maxIter = 13;
+	unsigned int maxIter = 15;
 	Camera cam;
 	sf::Color* colors = new sf::Color[10];
 	sf::Image* textures = new sf::Image[10];
