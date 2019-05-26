@@ -2,6 +2,8 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #define PI 3.1415926535f
+#define PI2 6.28318530718f
+#define PIH 1.57079632679f
 
 struct Camera {
 	sf::Vector3f pos = { 15.5f, 1.5f, 15.5f };
@@ -45,10 +47,7 @@ public:
 private:
 	void DynMove(unsigned int index, sf::Vector3f dir);
 	void UpdateDyn();
-	float Cos(float angle);
-	float Sin(float angle);
 	float LoopAngle(float angle);
-	float VAngle(sf::Vector2f a, sf::Vector2f b);
 	sf::Vector2f VNormalize(sf::Vector2f v);
 	float VLength(sf::Vector2f v);
 	float VAngleXZ(sf::Vector3f a, sf::Vector3f b);
@@ -57,7 +56,6 @@ private:
 	float VLength(sf::Vector3f v);
 	float VLengthXZ(sf::Vector3f v);
 	void Raycast(Ray* r);
-	float* sines = new float[2160];
 	unsigned int maxIter = 15;
 	Camera cam;
 	sf::Color* colors = new sf::Color[10];

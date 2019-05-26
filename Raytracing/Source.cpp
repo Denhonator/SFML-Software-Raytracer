@@ -69,13 +69,13 @@ void main() {
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl))
 			world.Move(0, 0, -speed);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
-			world.Turn(-speed * 20);
+			world.Turn(-speed * 0.3f);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
-			world.Turn(speed * 20);
+			world.Turn(speed * 0.3f);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
-			world.LookUp(speed * 20);
+			world.LookUp(speed * 0.3f);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
-			world.LookUp(-speed * 20);
+			world.LookUp(-speed * 0.3f);
 
 		world.UpdateWorld();
 
