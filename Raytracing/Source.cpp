@@ -11,10 +11,14 @@ bool run = true;
 bool draw[4] = { false,false,false,false };
 
 void RenderThread(int num) {
+	short xoff = (num & 1) * 2;
+	short yoff = (num & 2);
+	short cycle = 0;
 	while (run) {
 		if (draw[num]) {
-			world.UpdateScreenVertex(&screenVertex, num & 2 ? 1 : 0, num & 1 ? 1 : 0);
+			world.UpdateScreenVertex(&screenVertex, xoff + (cycle & 2 ? 1 : 0), yoff + (cycle & 1));
 			draw[num] = false;
+			cycle = (cycle + 1) % 4;
 		}
 		sf::sleep(sf::Time(sf::milliseconds(1)));
 	}
@@ -79,6 +83,9 @@ void main() {
 		world.DynMove(0, sf::Vector3f((int)clock.getElapsedTime().asSeconds() % 2 - 0.5f, 0, (int)(clock.getElapsedTime().asSeconds() + 0.5f) % 2 -0.5f)*0.1f);
 
 		draw[0] = true; draw[1] = true; draw[2] = true; draw[3] = true;	//Draw in 4 threads here and only here
+		while (draw[0] || draw[1] || draw[2] || draw[3])
+			sf::sleep(sf::milliseconds(1));
+		draw[0] = true; draw[1] = true; draw[2] = true; draw[3] = true; //Draw 2 cycles
 		while (draw[0] || draw[1] || draw[2] || draw[3])
 			sf::sleep(sf::milliseconds(1));
 

@@ -44,12 +44,12 @@ void World::UpdateScreenVertex(sf::VertexArray* v, int xoff, int yoff)
 	float hrayAngle;
 	float vrayAngle;
 	sf::Vector3f ldir;
-	for (int i = xoff; i < width; i+=2) {
+	for (int i = xoff; i < width; i+=4) {
 		hrayAngle = hStart + hIncreaseBy*i;
 		if (hrayAngle == 0 || hrayAngle == 90 || hrayAngle == 180 || hrayAngle == 270 || hrayAngle == 360)
 			hrayAngle += 0.01f;		//Avoid straight lines
 		ldir.x = Sin(hrayAngle); ldir.z = Cos(hrayAngle);
-		for (int j = yoff; j < height; j+=2) {
+		for (int j = yoff; j < height; j+=4) {
 			vrayAngle = vStart - j * vIncreaseBy;
 			if (std::abs(vrayAngle) < 0.005f)
 				vrayAngle += 0.01f;
