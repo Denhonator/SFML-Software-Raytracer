@@ -7,8 +7,9 @@ struct Camera {
 	sf::Vector3f pos = { 15.5f, 1.5f, 15.5f };
 	float rotation = 0;
 	float hrotation = 0;
-	float fovH = 60;
-	float fovV = 36;
+	float fovH = 75;
+	float fovV = 47;
+	float ySpeed = 0;
 };
 
 struct Block {
@@ -32,15 +33,17 @@ class World {
 public:
 	Block blocks[30][10][30];
 	void UpdateScreenVertex(sf::VertexArray* v, short num, short cycle);
+	void UpdateWorld();
 	void Turn(float angle);
 	void LookUp(float angle);
 	void Move(float forw, float right, float up);
-	void DynMove(unsigned int index, sf::Vector3f dir);
+	void Jump(float speed);
 	int width = 320;
 	int height = 180;
 	World();
 	~World();
 private:
+	void DynMove(unsigned int index, sf::Vector3f dir);
 	void UpdateDyn(int index = -1);
 	float Cos(float angle);
 	float Sin(float angle);
@@ -62,4 +65,5 @@ private:
 	sf::Image* dynTextures = new sf::Image[10];
 	Dynamic* dyn = new Dynamic[10];
 	Ray* rays = new Ray[4];
+	sf::Clock clock;
 };

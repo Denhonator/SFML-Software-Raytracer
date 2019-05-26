@@ -63,6 +63,14 @@ void World::UpdateScreenVertex(sf::VertexArray* v, short num, short cycle)
 	}
 }
 
+void World::UpdateWorld()
+{
+	DynMove(0, sf::Vector3f((int)clock.getElapsedTime().asSeconds() % 2 - 0.5f, 0, (int)(clock.getElapsedTime().asSeconds() + 0.5f) % 2 - 0.5f) * 0.1f);
+	Move(0, 0, cam.ySpeed);
+	cam.ySpeed -= 0.002f;
+	UpdateDyn();
+}
+
 void World::Turn(float angle)
 {
 	cam.rotation += angle;
@@ -80,22 +88,34 @@ void World::Move(float forw, float right, float up)
 {
 	float dirx = Sin(cam.rotation);
 	float dirz = Cos(cam.rotation);
+	float xlimits[2] = { -0.1f,0.1f }; float ylimits[2] = { -0.5f,0.1f }; float zlimits[2] = { -0.1f,0.1f };
 	sf::Vector3f ldir = sf::Vector3f(forw * dirx + right * dirz, up, forw * dirz - right * dirx);
-	if (blocks[(int)(cam.pos.x+ldir.x)][(int)cam.pos.y][(int)cam.pos.z].textureID != 0)
-		ldir.x = 0;
-	if (blocks[(int)cam.pos.x][(int)(cam.pos.y+ldir.y)][(int)cam.pos.z].textureID != 0)
-		ldir.y = 0;
-	if (blocks[(int)cam.pos.x][(int)cam.pos.y][(int)(cam.pos.z+ldir.z)].textureID != 0)
-		ldir.z = 0;
+	for (unsigned int x = 0; x < 2; x++) {
+		for (unsigned int y = 0; y < 2; y++) {
+			for (unsigned int z = 0; z < 2; z++) {
+				if (blocks[(int)(cam.pos.x + ldir.x + xlimits[x])][(int)(cam.pos.y + ylimits[y])][(int)(cam.pos.z+zlimits[z])].textureID != 0)
+					ldir.x = 0;
+				if (blocks[(int)(cam.pos.x + xlimits[x])][(int)(cam.pos.y + ldir.y + ylimits[y])][(int)(cam.pos.z + zlimits[z])].textureID != 0) {
+					ldir.y = 0;
+					cam.ySpeed = 0;
+				}
+				if (blocks[(int)(cam.pos.x + xlimits[x])][(int)(cam.pos.y + ylimits[y])][(int)(cam.pos.z + ldir.z + zlimits[z])].textureID != 0)
+					ldir.z = 0;
+			}
+		}
+	}
 	cam.pos += ldir;
-	UpdateDyn();
 	//std::cout << cam.pos.x << "; " << cam.pos.y << "; " << cam.pos.z << "\n";
+}
+
+void World::Jump(float speed)
+{
+	cam.ySpeed = speed;
 }
 
 void World::DynMove(unsigned int index, sf::Vector3f dir)
 {
 	dyn[index].pos += dir;
-	UpdateDyn(index);
 }
 
 void World::UpdateDyn(int index)
@@ -184,10 +204,10 @@ void World::Raycast(Ray* r)
 	float dirzlen = std::abs(dir.z);
 
 	for (unsigned int i = 0; i < maxIter; i++) {
-		float raySpeed = std::min({ (dirxadd + dirxsign * (pos.x - (int)pos.x)) / dirxlen,
+		float raySpeed = std::min({ (dirxadd + dirxsign * (pos.x - (int)pos.x)) / dirxlen,		//Rayspeed matches what is needed to reach next block
 									(diryadd + dirysign * (pos.y - (int)pos.y)) / dirylen,
 									(dirzadd + dirzsign * (pos.z - (int)pos.z)) / dirzlen });
-		raySpeed += 0.002f;
+		raySpeed += 0.002f;											//Add a little on top so it doesn't fall short
 		float tryDist = dist + raySpeed;
 		tryPos += dir * raySpeed;
 
@@ -217,7 +237,7 @@ void World::Raycast(Ray* r)
 
 		dist = tryDist;
 		pos = tryPos;
-		if (pos.x < 0 || pos.y < 0 || pos.z < 0 || pos.x >= 30 || pos.y >= 10 || pos.z >= 30)
+		if (pos.x < 0 || pos.y < 0 || pos.z < 0 || pos.x >= 30 || pos.y >= 10 || pos.z >= 30)	//Check out of bounds. Shouldn't be necessary if area is covered
 			break;
 		Block* block = &blocks[(int)pos.x][(int)pos.y][(int)pos.z];
 		if (block->textureID != 0) {

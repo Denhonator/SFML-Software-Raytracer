@@ -46,8 +46,6 @@ void main() {
 	std::thread p3 = std::thread(&RenderThread, 2);
 	std::thread p4 = std::thread(&RenderThread, 3);
 
-	sf::Clock clock;
-
 	while (window.isOpen())
 	{
 		sf::Event event;
@@ -67,7 +65,7 @@ void main() {
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
 			world.Move(-speed,0,0);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
-			world.Move(0, 0, speed);
+			world.Jump(0.05f);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl))
 			world.Move(0, 0, -speed);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
@@ -79,7 +77,7 @@ void main() {
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
 			world.LookUp(-speed * 20);
 
-		world.DynMove(0, sf::Vector3f((int)clock.getElapsedTime().asSeconds() % 2 - 0.5f, 0, (int)(clock.getElapsedTime().asSeconds() + 0.5f) % 2 -0.5f)*0.1f);
+		world.UpdateWorld();
 
 		draw[0] = cyclesPerFrame; draw[1] = cyclesPerFrame; draw[2] = cyclesPerFrame; draw[3] = cyclesPerFrame;	//Draw in 4 threads here and only here
 		while (draw[0] || draw[1] || draw[2] || draw[3])
