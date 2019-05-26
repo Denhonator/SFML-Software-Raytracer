@@ -22,10 +22,16 @@ struct Dynamic {
 	float distToCamera = 1000;
 };
 
+struct Ray {
+	sf::Vector3f dir;
+	float angle = 0;
+	sf::Color c;
+};
+
 class World {
 public:
 	Block blocks[30][10][30];
-	void UpdateScreenVertex(sf::VertexArray* v, int xoff, int yoff);
+	void UpdateScreenVertex(sf::VertexArray* v, short num, short cycle);
 	void Turn(float angle);
 	void LookUp(float angle);
 	void Move(float forw, float right, float up);
@@ -45,7 +51,7 @@ private:
 	float VAngleXZ(sf::Vector3f a, sf::Vector3f b);
 	sf::Vector3f VNormalize(sf::Vector3f v);
 	float VLength(sf::Vector3f v);
-	sf::Color Raycast(sf::Vector3f ldir, float rayAngle);
+	void Raycast(Ray* r);
 	float* sines = new float[2160];
 	unsigned int maxIter = 13;
 	Camera cam;
@@ -53,4 +59,5 @@ private:
 	sf::Image* textures = new sf::Image[10];
 	sf::Image* dynTextures = new sf::Image[10];
 	Dynamic* dyn = new Dynamic[10];
+	Ray* rays = new Ray[4];
 };

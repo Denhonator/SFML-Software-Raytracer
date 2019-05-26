@@ -35,26 +35,30 @@ World::World() {
 World::~World() {
 }
 
-void World::UpdateScreenVertex(sf::VertexArray* v, int xoff, int yoff)
+void World::UpdateScreenVertex(sf::VertexArray* v, short num, short cycle)
 {
+	short xoff = (num & 1) * 2 + (cycle & 2 ? 1 : 0);
+	short yoff = (num & 2) + (cycle & 1);
 	float vStart = cam.hrotation + cam.fovV/2;
 	float vIncreaseBy = cam.fovV / height;
 	float hStart = cam.rotation - cam.fovH/2;
 	float hIncreaseBy = cam.fovH / width;
 	float hrayAngle;
 	float vrayAngle;
-	sf::Vector3f ldir;
+	Ray* r = &rays[num];
 	for (int i = xoff; i < width; i+=4) {
 		hrayAngle = hStart + hIncreaseBy*i;
 		if (hrayAngle == 0 || hrayAngle == 90 || hrayAngle == 180 || hrayAngle == 270 || hrayAngle == 360)
 			hrayAngle += 0.01f;		//Avoid straight lines
-		ldir.x = Sin(hrayAngle); ldir.z = Cos(hrayAngle);
+		r->angle = hrayAngle;
+		r->dir.x = Sin(hrayAngle); r->dir.z = Cos(hrayAngle);
 		for (int j = yoff; j < height; j+=4) {
 			vrayAngle = (vStart - j * vIncreaseBy) * Cos(cam.rotation-hrayAngle);		//Cos fixes distortion on edges
 			if (std::abs(vrayAngle) < 0.005f)
 				vrayAngle += 0.01f;
-			ldir.y = Sin(vrayAngle);
-			(*v)[i + j * width].color = Raycast(ldir,hrayAngle);
+			r->dir.y = Sin(vrayAngle);
+			Raycast(r);
+			(*v)[i + width * j].color = r->c;
 		}
 	}
 }
@@ -152,79 +156,79 @@ float World::VLength(sf::Vector3f v)
 	return std::sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
 }
 
-sf::Color World::Raycast(sf::Vector3f ldir, float rayAngle)
+void World::Raycast(Ray* r)
 {
-	sf::Color c;
 	Block* block;
 	sf::Image* tex;
+	bool dynPassed = false;
+
 	float dist = 0;
 	float tryDist = 0;
-	bool dynPassed = false;
-	try {
-		sf::Vector3f pos = cam.pos;
-		sf::Vector3f tryPos = pos;
-		for (unsigned int i = 0; i < maxIter; i++) {
-			float raySpeed = std::min(std::min(	(ldir.x > 0 ? 1.0f - (pos.x - (int)pos.x) : (pos.x - (int)pos.x)) / std::abs(ldir.x),
-												(ldir.y > 0 ? 1.0f - (pos.y - (int)pos.y) : (pos.y - (int)pos.y)) / std::abs(ldir.y)),
-												(ldir.z > 0 ? 1.0f - (pos.z - (int)pos.z) : (pos.z - (int)pos.z)) / std::abs(ldir.z));
-			raySpeed += 0.002f;
-			tryDist = dist + raySpeed;
-			tryPos = pos + ldir * raySpeed;
+	sf::Vector3f pos = cam.pos;
+	sf::Vector3f tryPos = pos;
+	sf::Vector3f dir = r->dir;
 
-			if (!dynPassed && tryDist >= dyn[0].distToCamera) {			//Dynamic objects
-				raySpeed *= (dyn[0].distToCamera - dist) / raySpeed;
-				dist = dyn[0].distToCamera;
-				pos += ldir * raySpeed;
-				sf::Vector3f to = sf::Vector3f(dyn[0].pos.x-pos.x, dyn[0].pos.y-pos.y, dyn[0].pos.z-pos.z);
-				float w = to.x * to.x + to.z * to.z;
-				if (std::abs(to.y) < dyn[0].size.y && (w < dyn[0].size.x)) {
-					float ang = VAngleXZ(ldir, VNormalize(dyn[0].pos - cam.pos))*dist;
-					sf::Image* tex = &dynTextures[dyn[0].textureID];
-					int x = (0.5f + ang / PI * 0.5f / dyn[0].size.x) * (tex->getSize().x-1);
-					int y = (dyn[0].size.y + to.y) / dyn[0].size.y / 2 * (tex->getSize().y-1);
-					x = std::max(x, 0); y = std::max(y, 0);
-					c = tex->getPixel(x,y);
-					if (c.a > 127) {				//Transparency check
-						float darken = (2*dist + 2 * Sin(std::abs(rayAngle - cam.rotation))) * dist;
-						c.r = std::max(0.0f, c.r - darken); c.g = std::max(0.0f, c.g - darken); c.b = std::max(0.0f, c.b - darken);
-						return c;
-					}
-				}
-				dynPassed = true;
-			}
+	for (unsigned int i = 0; i < maxIter; i++) {
+		float raySpeed = std::min(std::min(	(dir.x > 0 ? 1.0f - (pos.x - (int)pos.x) : (pos.x - (int)pos.x)) / std::abs(dir.x),
+											(dir.y > 0 ? 1.0f - (pos.y - (int)pos.y) : (pos.y - (int)pos.y)) / std::abs(dir.y)),
+											(dir.z > 0 ? 1.0f - (pos.z - (int)pos.z) : (pos.z - (int)pos.z)) / std::abs(dir.z));
+		raySpeed += 0.002f;
+		tryDist = dist + raySpeed;
+		tryPos = pos + dir * raySpeed;
 
-			dist = tryDist;
-			pos = tryPos;
-			if (pos.x < 0 || pos.y < 0 || pos.z < 0 || pos.x >= 30 || pos.y >= 10 || pos.z >= 30)
-				break;
-			block = &blocks[(int)pos.x][(int)pos.y][(int)pos.z];
-			if (block->textureID != 0) {
-				if (block->textureID < 0) {
-					c = colors[-block->textureID];
+		if (!dynPassed && tryDist >= dyn[0].distToCamera) {			//Dynamic objects
+			raySpeed = (dyn[0].distToCamera - dist);
+			dist = dyn[0].distToCamera;
+			pos += dir * raySpeed;
+			sf::Vector3f to = dyn[0].pos-pos;
+			float w = to.x * to.x + to.z * to.z;
+			if (std::abs(to.y) < dyn[0].size.y && (w < dyn[0].size.x)) {
+				float ang = VAngleXZ(dir, VNormalize(dyn[0].pos - cam.pos))*dist;
+				sf::Image* tex = &dynTextures[dyn[0].textureID];
+				int x = (0.5f + ang / PI * 0.5f / dyn[0].size.x) * (tex->getSize().x-1);
+				int y = (dyn[0].size.y + to.y) / dyn[0].size.y / 2 * (tex->getSize().y-1);
+				x = std::max(x, 0); y = std::max(y, 0);
+				sf::Color c = tex->getPixel(x,y);
+				if (c.a > 127) {				//Transparency check
+					float darken = (2*dist + 2 * Sin(std::abs(r->angle - cam.rotation))) * dist;
+					c.r = std::max(0.0f, c.r - darken); c.g = std::max(0.0f, c.g - darken); c.b = std::max(0.0f, c.b - darken);
+					r->c = c;
+					return;
 				}
-				else {		//Get color from texture with coordinates
-					tex = &textures[block->textureID - 1];
-					if (pos.x - (int)pos.x < 0.01f || pos.x - (int)pos.x > 0.99f) {
-						c = tex->getPixel(tex->getSize().x * (pos.z-(int)pos.z), tex->getSize().y * (pos.y-(int)pos.y));
-					}
-					else if (pos.y - (int)pos.y < 0.01f || pos.y - (int)pos.y > 0.99f) {
-						c = tex->getPixel(tex->getSize().x * (pos.x-(int)pos.x), tex->getSize().y * (pos.z-(int)pos.z));
-					}
-					else if (pos.z - (int)pos.z < 0.01f || pos.z - (int)pos.z > 0.99f) {
-						c = tex->getPixel(tex->getSize().x * (pos.x-(int)pos.x), tex->getSize().y * (pos.y-(int)pos.y));
-					}
-					/*else {
-						c = colors[1];
-					}*/
-				}
-				float darken = (2 * dist + 2 * Sin(std::abs(rayAngle - cam.rotation))) * dist;
-				c.r = std::max(0.0f, c.r - darken); c.g = std::max(0.0f, c.g - darken); c.b = std::max(0.0f, c.b - darken);
-				return c;
 			}
+			dynPassed = true;
 		}
-		return colors[0];
+
+		dist = tryDist;
+		pos = tryPos;
+		if (pos.x < 0 || pos.y < 0 || pos.z < 0 || pos.x >= 30 || pos.y >= 10 || pos.z >= 30)
+			break;
+		block = &blocks[(int)pos.x][(int)pos.y][(int)pos.z];
+		if (block->textureID != 0) {
+			sf::Color c;
+			if (block->textureID < 0) {
+				c = colors[-block->textureID];
+			}
+			else {		//Get color from texture with coordinates
+				tex = &textures[block->textureID - 1];
+				if (pos.x - (int)pos.x < 0.01f || pos.x - (int)pos.x > 0.99f) {
+					c = tex->getPixel(tex->getSize().x * (pos.z-(int)pos.z), tex->getSize().y * (pos.y-(int)pos.y));
+				}
+				else if (pos.y - (int)pos.y < 0.01f || pos.y - (int)pos.y > 0.99f) {
+					c = tex->getPixel(tex->getSize().x * (pos.x-(int)pos.x), tex->getSize().y * (pos.z-(int)pos.z));
+				}
+				else if (pos.z - (int)pos.z < 0.01f || pos.z - (int)pos.z > 0.99f) {
+					c = tex->getPixel(tex->getSize().x * (pos.x-(int)pos.x), tex->getSize().y * (pos.y-(int)pos.y));
+				}
+				/*else {
+					c = colors[1];
+				}*/
+			}
+			float darken = (2 * dist + 2 * Sin(std::abs(r->angle - cam.rotation))) * dist;
+			c.r = std::max(0.0f, c.r - darken); c.g = std::max(0.0f, c.g - darken); c.b = std::max(0.0f, c.b - darken);
+			r->c = c;
+			return;
+		}
 	}
-	catch (...) {
-		return colors[0];
-	}
+	r->c = sf::Color::Black;
 }
