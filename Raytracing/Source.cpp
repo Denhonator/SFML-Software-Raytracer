@@ -67,27 +67,26 @@ void main() {
 			world.Move(speed,0,0);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
 			world.Move(-speed,0,0);
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
+			world.Move(0, 0, speed);
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl))
+			world.Move(0, 0, -speed);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
 			world.Turn(-speed * 20);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
 			world.Turn(speed * 20);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
-			world.LookUp(speed * 30);
+			world.LookUp(speed * 20);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
-			world.LookUp(-speed * 30);
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
-			world.Move(0, 0, speed);
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl))
-			world.Move(0, 0, -speed);
+			world.LookUp(-speed * 20);
 
 		world.DynMove(0, sf::Vector3f((int)clock.getElapsedTime().asSeconds() % 2 - 0.5f, 0, (int)(clock.getElapsedTime().asSeconds() + 0.5f) % 2 -0.5f)*0.1f);
 
-		draw[0] = true; draw[1] = true; draw[2] = true; draw[3] = true;	//Draw in 4 threads here and only here
-		while (draw[0] || draw[1] || draw[2] || draw[3])
-			sf::sleep(sf::milliseconds(1));
-		draw[0] = true; draw[1] = true; draw[2] = true; draw[3] = true; //Draw 2 cycles
-		while (draw[0] || draw[1] || draw[2] || draw[3])
-			sf::sleep(sf::milliseconds(1));
+		for (unsigned int i = 0; i < 2; i++) {
+			draw[0] = true; draw[1] = true; draw[2] = true; draw[3] = true;	//Draw in 4 threads here and only here
+			while (draw[0] || draw[1] || draw[2] || draw[3])
+				sf::sleep(sf::milliseconds(1));
+		}
 
 		screenTexture.draw(screenVertex);
 		screenTexture.display();

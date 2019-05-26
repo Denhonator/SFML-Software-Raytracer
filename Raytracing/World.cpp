@@ -50,7 +50,7 @@ void World::UpdateScreenVertex(sf::VertexArray* v, int xoff, int yoff)
 			hrayAngle += 0.01f;		//Avoid straight lines
 		ldir.x = Sin(hrayAngle); ldir.z = Cos(hrayAngle);
 		for (int j = yoff; j < height; j+=4) {
-			vrayAngle = vStart - j * vIncreaseBy;
+			vrayAngle = (vStart - j * vIncreaseBy) * Cos(cam.rotation-hrayAngle);		//Cos fixes distortion on edges
 			if (std::abs(vrayAngle) < 0.005f)
 				vrayAngle += 0.01f;
 			ldir.y = Sin(vrayAngle);
@@ -99,7 +99,7 @@ void World::UpdateDyn(int index)
 	if (index < 0)
 		index = 0;
 	sf::Vector3f to = dyn[index].pos - cam.pos;
-	dyn[index].distToCamera = to.x * to.x + to.y * to.y + to.z * to.z;
+	dyn[index].distToCamera = to.x * to.x + to.z * to.z;
 	dyn[index].distToCamera = std::sqrtf(dyn[index].distToCamera);
 }
 
@@ -157,7 +157,6 @@ sf::Color World::Raycast(sf::Vector3f ldir, float rayAngle)
 	sf::Color c;
 	Block* block;
 	sf::Image* tex;
-	ldir = VNormalize(ldir);
 	float dist = 0;
 	float tryDist = 0;
 	bool dynPassed = false;
