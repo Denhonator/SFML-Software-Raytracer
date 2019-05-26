@@ -29,7 +29,11 @@ World::World() {
 	textures[1].loadFromFile("Floor.png");
 	textures[2].loadFromFile("Ceiling.png");
 	dynTextures[0].loadFromFile("Dynamic.png");
-	UpdateDyn();
+
+	for (unsigned int i = 0; i < 10; i++) {
+		dyn[i].textureID = 0;
+		dyn[i].pos.x += i*0.5f;
+	}
 }
 
 World::~World() {
@@ -65,7 +69,9 @@ void World::UpdateScreenVertex(sf::VertexArray* v, short num, short cycle)
 
 void World::UpdateWorld()
 {
-	DynMove(0, sf::Vector3f((int)clock.getElapsedTime().asSeconds() % 2 - 0.5f, 0, (int)(clock.getElapsedTime().asSeconds() + 0.5f) % 2 - 0.5f) * 0.1f);
+	for (unsigned int i = 0; i < 10; i++) {
+		DynMove(i, sf::Vector3f((int)clock.getElapsedTime().asSeconds() % 2 - 0.5f, 0, (int)(clock.getElapsedTime().asSeconds() + 0.5f) % 2 - 0.5f) * 0.02f);
+	}
 	Move(0, 0, cam.ySpeed);
 	cam.ySpeed -= 0.002f;
 	UpdateDyn();
@@ -90,16 +96,20 @@ void World::Move(float forw, float right, float up)
 	float dirz = Cos(cam.rotation);
 	float xlimits[2] = { -0.1f,0.1f }; float ylimits[2] = { -0.5f,0.1f }; float zlimits[2] = { -0.1f,0.1f };
 	sf::Vector3f ldir = sf::Vector3f(forw * dirx + right * dirz, up, forw * dirz - right * dirx);
+	sf::Vector3i testPos;
 	for (unsigned int x = 0; x < 2; x++) {
 		for (unsigned int y = 0; y < 2; y++) {
 			for (unsigned int z = 0; z < 2; z++) {
-				if (blocks[(int)(cam.pos.x + ldir.x + xlimits[x])][(int)(cam.pos.y + ylimits[y])][(int)(cam.pos.z+zlimits[z])].textureID != 0)
+				testPos.x = (int)(cam.pos.x + ldir.x + xlimits[x]); testPos.y = (int)(cam.pos.y + ylimits[y]); testPos.z = (int)(cam.pos.z + zlimits[z]);
+				if (blocks[testPos.x][testPos.y][testPos.z].textureID != 0)
 					ldir.x = 0;
-				if (blocks[(int)(cam.pos.x + xlimits[x])][(int)(cam.pos.y + ldir.y + ylimits[y])][(int)(cam.pos.z + zlimits[z])].textureID != 0) {
+				testPos.x = (int)(cam.pos.x + xlimits[x]); testPos.y = (int)(cam.pos.y + ldir.y + ylimits[y]);
+				if (blocks[testPos.x][testPos.y][testPos.z].textureID != 0) {
 					ldir.y = 0;
 					cam.ySpeed = 0;
 				}
-				if (blocks[(int)(cam.pos.x + xlimits[x])][(int)(cam.pos.y + ylimits[y])][(int)(cam.pos.z + ldir.z + zlimits[z])].textureID != 0)
+				testPos.y = (int)(cam.pos.y + ylimits[y]); testPos.z = (int)(cam.pos.z + ldir.z + zlimits[z]);
+				if (blocks[testPos.x][testPos.y][testPos.z].textureID != 0)
 					ldir.z = 0;
 			}
 		}
@@ -118,13 +128,21 @@ void World::DynMove(unsigned int index, sf::Vector3f dir)
 	dyn[index].pos += dir;
 }
 
-void World::UpdateDyn(int index)
+void World::UpdateDyn()
 {
-	if (index < 0)
-		index = 0;
-	sf::Vector3f to = dyn[index].pos - cam.pos;
-	dyn[index].distToCamera = to.x * to.x + to.z * to.z;
-	dyn[index].distToCamera = std::sqrtf(dyn[index].distToCamera);
+	for (unsigned int i = 0; i < 10; i++) {
+		if (dyn[i].textureID<0)
+			continue;
+		sf::Vector3f to = dyn[i].pos - cam.pos;
+		dyn[i].distToCamera = to.x * to.x + to.z * to.z;
+		dyn[i].distToCamera = std::sqrtf(dyn[i].distToCamera);
+
+		if (i>0 && dyn[i].distToCamera < dyn[i-1].distToCamera) {
+			Dynamic temp = dyn[i - 1];
+			dyn[i - 1] = dyn[i];
+			dyn[i] = temp;
+		}
+	}
 }
 
 float World::Cos(float angle)
@@ -187,8 +205,6 @@ inline float World::VLengthXZ(sf::Vector3f v)
 
 void World::Raycast(Ray* r)
 {
-	bool dynPassed = false;
-
 	float dist = 0;
 	sf::Vector3f pos = cam.pos;
 	sf::Vector3f tryPos = pos;
@@ -202,6 +218,7 @@ void World::Raycast(Ray* r)
 	float dirxlen = std::abs(dir.x);
 	float dirylen = std::abs(dir.y);
 	float dirzlen = std::abs(dir.z);
+	unsigned short DI = 0;
 
 	for (unsigned int i = 0; i < maxIter; i++) {
 		float raySpeed = std::min({ (dirxadd + dirxsign * (pos.x - (int)pos.x)) / dirxlen,		//Rayspeed matches what is needed to reach next block
@@ -211,18 +228,19 @@ void World::Raycast(Ray* r)
 		float tryDist = dist + raySpeed;
 		tryPos += dir * raySpeed;
 
-		if (!dynPassed && tryDist >= dyn[0].distToCamera) {			//Dynamic objects
-			raySpeed = (dyn[0].distToCamera - dist);				//Reduce rayspeed to hit object
-			dist = dyn[0].distToCamera;
+		
+		if (DI<10 && tryDist >= dyn[DI].distToCamera) {			//Dynamic objects
+			raySpeed = (dyn[DI].distToCamera - dist);				//Reduce rayspeed to hit object
+			dist = dyn[DI].distToCamera;
 			pos += dir * raySpeed;									//Set new position
-			sf::Vector3f to = dyn[0].pos-pos;						//Vector from ray pos to object pos (middle, y ignored)
+			sf::Vector3f to = dyn[DI].pos-pos;						//Vector from ray pos to object pos (middle, y ignored)
 			float w = to.x * to.x + to.z * to.z;
-			if (std::abs(to.y) < dyn[0].size.y && (w < dyn[0].size.x)) {
-				float ang = VAngleXZ(dir, VNormalizeXZ(dyn[0].pos - cam.pos))*dist;
-				sf::Image* tex = &dynTextures[dyn[0].textureID];
+			if (std::abs(to.y) < dyn[DI].size.y && (w < dyn[DI].size.x)) {
+				float ang = VAngleXZ(dir, VNormalizeXZ(dyn[DI].pos - cam.pos))*dist;
+				sf::Image* tex = &dynTextures[dyn[DI].textureID];
 				sf::Vector2u tsize = tex->getSize();
-				int x = (0.5f + ang / PI * 0.5f / dyn[0].size.x) * (tsize.x-1);
-				int y = (dyn[0].size.y + to.y) / dyn[0].size.y / 2 * (tsize.y-1);
+				int x = (0.5f + ang / PI * 0.5f / dyn[DI].size.x) * (tsize.x-1);
+				int y = (dyn[DI].size.y + to.y) / dyn[DI].size.y / 2 * (tsize.y-1);
 				x = std::max(x, 0); y = std::max(y, 0);
 				sf::Color c = tex->getPixel(x,y);
 				if (c.a > 127) {				//Transparency check
@@ -232,7 +250,7 @@ void World::Raycast(Ray* r)
 					return;
 				}
 			}
-			dynPassed = true;
+			DI++;
 		}
 
 		dist = tryDist;

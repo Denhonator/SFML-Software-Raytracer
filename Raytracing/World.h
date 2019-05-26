@@ -17,8 +17,8 @@ struct Block {
 };
 
 struct Dynamic {
-	short textureID = 0;
-	sf::Vector3f pos = { 15.5f, 4.3f, 16.0f };
+	short textureID = -1;
+	sf::Vector3f pos = { 15.5f, 4.6f, 16.0f };
 	sf::Vector2f size = sf::Vector2f(0.1f, 0.3f);
 	float distToCamera = 1000;
 };
@@ -44,7 +44,7 @@ public:
 	~World();
 private:
 	void DynMove(unsigned int index, sf::Vector3f dir);
-	void UpdateDyn(int index = -1);
+	void UpdateDyn();
 	float Cos(float angle);
 	float Sin(float angle);
 	float LoopAngle(float angle);
