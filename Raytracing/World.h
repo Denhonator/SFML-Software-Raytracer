@@ -6,7 +6,7 @@
 #define PIH 1.57079632679f
 
 struct Camera {
-	sf::Vector3f pos = { 15.5f, 1.5f, 15.5f };
+	sf::Vector3f pos = { 15.5f, 1.9f, 15.5f };
 	float rotation = 0;
 	float hrotation = 0;
 	float fovH = 75;
@@ -56,7 +56,7 @@ private:
 	float VLength(sf::Vector3f v);
 	float VLengthXZ(sf::Vector3f v);
 	void Raycast(Ray* r);
-	unsigned int maxIter = 15;
+	float maxIter = 17;
 	Camera cam;
 	sf::Color* colors = new sf::Color[10];
 	sf::Image* textures = new sf::Image[10];

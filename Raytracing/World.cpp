@@ -6,10 +6,10 @@ World::World() {
 			for (unsigned int z = 0; z < 30; z++) {
 				if (y == 0)
 					blocks[x][y][z].textureID = 2;
-				if (y == 3 && x % 4 != 0 && z % 5 != 0)
-					blocks[x][y][z].textureID = 4;
-				else if ((x==0||x==29||z==0||z==29) || (x % 9 == 0 && z % 11 == 0))
+				if ((x == 0 || x == 29 || z == 0 || z == 29) || (x % 9 == 0 && z % 11 == 0))
 					blocks[x][y][z].textureID = 1;
+				else if (y == 3 && x % 4 != 0 && z % 5 != 0)
+					blocks[x][y][z].textureID = 4;
 				if (y == 9)
 					blocks[x][y][z].textureID = 3;
 			}
@@ -43,24 +43,26 @@ void World::UpdateScreenVertex(sf::VertexArray* v, short num, short cycle)
 {
 	short xoff = (num & 1) * 2 + (cycle & 2 ? 1 : 0);
 	short yoff = (num & 2) + (cycle & 1);
-	float vStart = cam.hrotation + cam.fovV/2;
+	float vStart = cam.fovV / 2;
 	float vIncreaseBy = cam.fovV / height;
+	float vOff = std::sin(cam.hrotation);
 	float hStart = cam.rotation - cam.fovH/2;
 	float hIncreaseBy = cam.fovH / width;
 	float hrayAngle;
 	float vrayAngle;
 	Ray* r = &rays[num];
 	for (int i = xoff; i < width; i+=4) {
-		hrayAngle = hStart + hIncreaseBy*i;
+		hrayAngle = (hStart + hIncreaseBy*i);
 		if (hrayAngle == 0 || hrayAngle == PIH || hrayAngle == PI || hrayAngle == PI+PIH || hrayAngle == PI2)
 			hrayAngle += 0.001f;		//Avoid straight lines
 		r->angle = hrayAngle;
 		r->dir.x = std::sin(hrayAngle); r->dir.z = std::cos(hrayAngle);
+		float vDeDistort = std::cos(cam.rotation - hrayAngle); //Cos fixes distortion on edges
 		for (int j = yoff; j < height; j+=4) {
-			vrayAngle = (vStart - j * vIncreaseBy) * std::cos(cam.rotation-hrayAngle);		//Cos fixes distortion on edges
+			vrayAngle = (vStart - j * vIncreaseBy);
 			if (std::abs(vrayAngle) == 0)
 				vrayAngle += 0.001f;
-			r->dir.y = std::sin(vrayAngle);
+			r->dir.y = (vOff + std::sin(vrayAngle))*vDeDistort;
 			Raycast(r);
 			(*v)[i + width * j].color = r->c;
 		}
@@ -88,14 +90,14 @@ void World::LookUp(float angle)
 {
 	if (std::abs(cam.hrotation + angle) + cam.fovV/2 < PIH)
 		cam.hrotation += angle;
-	std::cout << cam.hrotation / PI * 180 << "\n";
+	//std::cout << cam.hrotation / PI * 180 << "\n";
 }
 
 void World::Move(float forw, float right, float up)
 {
 	float dirx = std::sin(cam.rotation);
 	float dirz = std::cos(cam.rotation);
-	float xlimits[2] = { -0.1f,0.1f }; float ylimits[2] = { -0.5f,0.1f }; float zlimits[2] = { -0.1f,0.1f };
+	float xlimits[2] = { -0.1f,0.1f }; float ylimits[2] = { -0.8f,0.1f }; float zlimits[2] = { -0.1f,0.1f };
 	sf::Vector3f ldir = sf::Vector3f(forw * dirx + right * dirz, up, forw * dirz - right * dirx);
 	sf::Vector3i testPos;
 	for (unsigned int x = 0; x < 2; x++) {
@@ -228,7 +230,7 @@ void World::Raycast(Ray* r)
 				x = std::max(x, 0); y = std::max(y, 0);
 				sf::Color c = tex->getPixel(x,y);
 				if (c.a > 127) {				//Transparency check
-					float darken = (1.5f * dist + 2 * std::sin(std::abs(r->angle - cam.rotation))) * dist;
+					float darken = (1.5f * (dist+std::abs(cam.pos.y-pos.y)) + 2 * std::sin(std::abs(r->angle - cam.rotation))) * dist;
 					c.r = std::max(0.0f, c.r - darken); c.g = std::max(0.0f, c.g - darken); c.b = std::max(0.0f, c.b - darken);
 					r->c = c;
 					return;
@@ -263,7 +265,7 @@ void World::Raycast(Ray* r)
 					c = colors[1];
 				}*/
 			}
-			float darken = (1.5f * dist + 2 * std::sin(std::abs(r->angle - cam.rotation))) * dist;
+			float darken = (1.5f * (dist + std::abs(cam.pos.y - pos.y)) + 2 * std::sin(std::abs(r->angle - cam.rotation))) * dist;
 			c.r = std::max(0.0f, c.r - darken); c.g = std::max(0.0f, c.g - darken); c.b = std::max(0.0f, c.b - darken);
 			r->c = c;
 			return;
