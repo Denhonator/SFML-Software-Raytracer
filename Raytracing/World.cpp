@@ -12,9 +12,23 @@ World::World() {
 					blocks[x][y][z].textureID = 4;
 				if (y == 9)
 					blocks[x][y][z].textureID = 3;
-				float dist = 1000;
 				for (unsigned int i = 0; i < 6; i++) {		//Lights
 					blocks[x][y][z].l[i] = -1;
+					float dist = 1000;
+					for (unsigned int j = 0; j < 10; j++) {
+						if (i == 0 && lights[j].pos.x > x + 1	||
+							i == 1 && lights[j].pos.x < x		||
+							i == 2 && lights[j].pos.y > y + 1	||
+							i == 3 && lights[j].pos.y < y		||
+							i == 4 && lights[j].pos.z > z + 1	||
+							i == 5 && lights[j].pos.z < z) {
+							float tryDist = VLength(lights[j].pos - sf::Vector3f(x + 1, y + 0.5f, z + 0.5f));
+							if (tryDist < dist && tryDist < 20) {
+								blocks[x][y][z].l[i] = j;
+								dist = tryDist;
+							}
+						}
+					}
 				}
 			}
 		}
@@ -228,16 +242,18 @@ void World::Raycast(Ray* r)
 	unsigned short DI = 0;
 
 	for (unsigned int i = 0; i < maxIter; i++) {
-		float raySpeed = std::min({ (dirxadd + dirxsign * (pos.x - posi.x)) / dirxlen,		//Rayspeed matches what is needed to reach next block
-									(diryadd + dirysign * (pos.y - posi.y)) / dirylen,
-									(dirzadd + dirzsign * (pos.z - posi.z)) / dirzlen });
+		float xray = (dirxadd + dirxsign * (pos.x - posi.x)) / dirxlen;
+		float yray = (diryadd + dirysign * (pos.y - posi.y)) / dirylen;
+		float zray = (dirzadd + dirzsign * (pos.z - posi.z)) / dirzlen;
+		float raySpeed = std::min({ xray, yray,	zray });			//Rayspeed matches what is needed to reach next block
+
 		raySpeed += 0.002f;											//Add a little on top so it doesn't fall short
 		float tryDist = dist + raySpeed;
 		tryPos += dir * raySpeed;
 
 		
 		while (DI<10 && tryDist >= dyn[DI].distToCamera) {			//Dynamic objects
-			raySpeed = dyn[DI].distToCamera - dist;				//Reduce rayspeed to hit object
+			raySpeed = dyn[DI].distToCamera - dist;					//Reduce rayspeed to hit object
 			dist = dyn[DI].distToCamera;
 			pos += dir * raySpeed;									//Set new position
 			sf::Vector3f to = dyn[DI].pos-pos;						//Vector from ray pos to object pos (middle, y ignored)
@@ -252,8 +268,9 @@ void World::Raycast(Ray* r)
 				x = std::max(x, 0); y = std::max(y, 0);
 				sf::Color c = tex->getPixel(x, y);
 				if (c.a > 127) {				//Transparency check
-					float darken = (1.5f * (dist + std::abs(cam.pos.y - pos.y)) + 2 * std::sin(std::abs(r->angle - cam.rotation))) * dist;
-					c.r = std::max(0.0f, c.r - darken); c.g = std::max(0.0f, c.g - darken); c.b = std::max(0.0f, c.b - darken);
+					float lit = 1.5f / (dist + std::abs(cam.pos.y - pos.y) + std::sin(std::abs(r->angle - cam.rotation))) - dist * 0.01f;
+					lit = std::max(lit, 0.0f);
+					c.r = std::min(c.r * lit, 255.0f); c.g = std::min(c.g * lit, 255.0f); c.b = std::min(c.b * lit, 255.0f);
 					r->c = c;
 					return;
 				}
@@ -269,18 +286,13 @@ void World::Raycast(Ray* r)
 		Block* block = &blocks[posi.x][posi.y][posi.z];
 		if (block->textureID != 0) {
 			sf::Color c;
-
-			int sidex = 0, sidey = 0, sidez = 0, lindex = 0;
-			sidex = (pos.x - posi.x - 0.5f) * 2.02f;		//These values are -1 or 1 on the axis that the ray traversed to hit this block
-			lindex = (1 - sidex) >> 1;
-			if (!sidex) {
-				sidey = (pos.y - posi.y - 0.5f) * 2.02f;
-				lindex = 2 + ((1 - sidey) >> 1);
-			}
-			if (!sidey) {
-				sidez = (pos.z - posi.z - 0.5f) * 2.02f;
-				lindex = 4 + ((1 - sidez) >> 1);
-			}
+			int lindex = 0;
+			if	(xray < yray && xray < zray)
+				lindex = (1 - dirxsign) >> 1;
+			else if (yray < xray && yray < zray)
+				lindex = 2 + ((1 - dirysign) >> 1);
+			else if (zray < yray && zray < xray)
+				lindex = 4 + ((1 - dirzsign) >> 1);
 
 			if (block->textureID < 0) {
 				c = colors[-block->textureID];
@@ -288,26 +300,31 @@ void World::Raycast(Ray* r)
 			else {		//Get color from texture with coordinates
 				sf::Image* tex = &textures[block->textureID - 1];
 				sf::Vector2u tsize = tex->getSize();
-				if (sidex) {
+				if (lindex<2) {
 					c = tex->getPixel(tsize.x * (pos.z-posi.z), tsize.y * (pos.y-posi.y));
 				}
-				else if (sidey) {
+				else if (lindex<4) {
 					c = tex->getPixel(tsize.x * (pos.x-posi.x), tsize.y * (pos.z-posi.z));
 				}
-				else if (sidez) {
+				else {
 					c = tex->getPixel(tsize.x * (pos.x-posi.x), tsize.y * (pos.y-posi.y));
 				}
 			}
-			//float lit = 1 - (((dist + std::abs(cam.pos.y - pos.y)) + std::sin(std::abs(r->angle - cam.rotation))/dist) / 13.0f);
-			float lit = 1.5f / (dist + std::abs(cam.pos.y - pos.y) + std::sin(std::abs(r->angle - cam.rotation))) - dist*0.01f;
+			float lit = std::max(0.1f/dist-dist*0.0001f,0.0f);
+			/*if(dist<2)
+				lit = 0.2f / (dist + std::abs(cam.pos.y - pos.y) + std::sin(std::abs(r->angle - cam.rotation)));*/
 			lindex = block->l[lindex];
 			if (lindex >= 0) {
-				r->pos = pos;
-				r->dir = lights[lindex].pos - pos;
-				r->maxDist = 5;
+				sf::Vector3f newDir = lights[lindex].pos - pos;
+				dist = VLength(newDir);
+				r->maxDist = dist;
+				newDir = VNormalize(newDir);
+				r->dir = newDir;
+				r->pos = pos + newDir;
 				if (LRaycast(r)) {
-					lit += lights[lindex].intensity / VLength(lights[lindex].pos - pos);
+					lit += lights[lindex].intensity / dist / dist - dist*0.001f;
 				}
+				r->dir = dir;
 			}
 			lit = std::max(lit, 0.0f);
 			c.r = std::min(c.r * lit, 255.0f); c.g = std::min(c.g * lit, 255.0f); c.b = std::min(c.b * lit, 255.0f);
@@ -343,8 +360,9 @@ bool World::LRaycast(Ray* r)
 		dist += raySpeed;
 		if (dist >= maxDist)
 			return true;
-		pos = dir*raySpeed;
+		pos += dir*raySpeed;
 		posi.x = pos.x; posi.y = pos.y; posi.z = pos.z;
+		
 		//if (pos.x < 0 || pos.y < 0 || pos.z < 0 || pos.x >= 30 || pos.y >= 10 || pos.z >= 30)	//Check out of bounds. Shouldn't be necessary if area is covered
 		//	break;
 		Block* block = &blocks[posi.x][posi.y][posi.z];
@@ -352,4 +370,5 @@ bool World::LRaycast(Ray* r)
 			return false;
 		}
 	}
+	return false;
 }

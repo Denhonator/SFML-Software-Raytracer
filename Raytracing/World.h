@@ -29,8 +29,8 @@ struct Dynamic {
 };
 
 struct Light {
-	sf::Vector3f pos = { 17.5f, 1.9f, 17.5f };
-	float intensity = 0;
+	sf::Vector3f pos = { 17.5f, 2.0f, 17.5f };
+	float intensity = 1;
 };
 
 struct Ray {
