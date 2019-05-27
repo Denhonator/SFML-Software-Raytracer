@@ -53,29 +53,32 @@ void main() {
 		{
 			if (event.type == sf::Event::Closed)
 				window.close();
+
+			int sign = event.type == sf::Event::KeyPressed ? 1 : event.type == sf::Event::KeyReleased ? 0 : -1;
+			if (sign>=0) {
+				if (event.key.code == sf::Keyboard::A)
+					world.Move(2, -1 * sign);
+				else if (event.key.code == sf::Keyboard::D)
+					world.Move(2, 1 * sign);
+				else if (event.key.code == sf::Keyboard::W)
+					world.Move(1 * sign, 2);
+				else if (event.key.code == sf::Keyboard::S)
+					world.Move(-1 * sign, 2);
+				else if (event.key.code == sf::Keyboard::Space)
+					world.Jump(0.05f * sign);
+				else if (event.key.code == sf::Keyboard::LShift)
+					world.cam.speedM = sign * 0.05f + 0.05f;
+			}
 		}
 
-		float speed = sf::Keyboard::isKeyPressed(sf::Keyboard::LShift) ? 0.08f : 0.04;
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
-			world.Move(0,-speed,0);
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
-			world.Move(0, speed,0);
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
-			world.Move(speed,0,0);
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
-			world.Move(-speed,0,0);
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
-			world.Jump(0.05f);
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl))
-			world.Move(0, 0, -speed);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
-			world.Turn(-speed * 0.3f);
+			world.Turn(-1 * 0.3f);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
-			world.Turn(speed * 0.3f);
+			world.Turn(1 * 0.3f);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
-			world.LookUp(speed * 0.3f);
+			world.LookUp(1 * 0.3f);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
-			world.LookUp(-speed * 0.3f);
+			world.LookUp(-1 * 0.3f);
 
 		world.UpdateWorld();
 

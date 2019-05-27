@@ -11,7 +11,9 @@ struct Camera {
 	float hrotation = 0;
 	float fovH = 75;
 	float fovV = 47;
-	float ySpeed = 0;
+	float airtime = 0;
+	float speedM = 0.05f;
+	sf::Vector3f speed;
 };
 
 struct Block {
@@ -20,14 +22,15 @@ struct Block {
 
 struct Dynamic {
 	short textureID = -1;
-	sf::Vector3f pos = { 15.5f, 4.6f, 16.0f };
-	sf::Vector2f size = sf::Vector2f(0.1f, 0.3f);
+	sf::Vector3f pos = { 15.5f, 1.45f, 16.0f };
+	sf::Vector2f size = sf::Vector2f(0.15f, 0.45f);
 	float distToCamera = 1000;
 };
 
 struct Ray {
 	sf::Vector3f dir;
 	float angle = 0;
+	float yscale = 1;
 	sf::Color c;
 };
 
@@ -36,15 +39,17 @@ public:
 	Block blocks[30][10][30];
 	void UpdateScreenVertex(sf::VertexArray* v, short num, short cycle);
 	void UpdateWorld();
+	void Move(float forw, float right);
 	void Turn(float angle);
 	void LookUp(float angle);
-	void Move(float forw, float right, float up);
 	void Jump(float speed);
 	int width = 320;
 	int height = 180;
+	Camera cam;
 	World();
 	~World();
 private:
+	void Move(float forw, float right, float up);
 	void DynMove(unsigned int index, sf::Vector3f dir);
 	void UpdateDyn();
 	float LoopAngle(float angle);
@@ -57,7 +62,6 @@ private:
 	float VLengthXZ(sf::Vector3f v);
 	void Raycast(Ray* r);
 	float maxIter = 17;
-	Camera cam;
 	sf::Color* colors = new sf::Color[10];
 	sf::Image* textures = new sf::Image[10];
 	sf::Image* dynTextures = new sf::Image[10];

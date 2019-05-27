@@ -27,7 +27,7 @@ World::World() {
 	textures[3].loadFromFile("Block.png");
 	dynTextures[0].loadFromFile("Dynamic.png");
 
-	for (unsigned int i = 0; i < 10; i++) {
+	for (unsigned int i = 0; i < 5; i++) {
 		dyn[i].textureID = 0;
 		dyn[i].pos.x += i*0.5f;
 	}
@@ -57,12 +57,12 @@ void World::UpdateScreenVertex(sf::VertexArray* v, short num, short cycle)
 			hrayAngle += 0.001f;		//Avoid straight lines
 		r->angle = hrayAngle;
 		r->dir.x = std::sin(hrayAngle); r->dir.z = std::cos(hrayAngle);
-		float vDeDistort = std::cos(cam.rotation - hrayAngle); //Cos fixes distortion on edges
+		float vDeDistort = std::cos(cam.rotation - hrayAngle);		//Cos fixes distortion on edges
+
 		for (int j = yoff; j < height; j+=4) {
 			vrayAngle = (vStart - j * vIncreaseBy);
-			if (std::abs(vrayAngle) == 0)
-				vrayAngle += 0.001f;
 			r->dir.y = (vOff + std::sin(vrayAngle))*vDeDistort;
+			r->yscale = std::cos(cam.hrotation + vrayAngle);
 			Raycast(r);
 			(*v)[i + width * j].color = r->c;
 		}
@@ -74,20 +74,30 @@ void World::UpdateWorld()
 	for (unsigned int i = 0; i < 10; i++) {
 		DynMove(i, sf::Vector3f((int)clock.getElapsedTime().asSeconds() % 2 - 0.5f, 0, (int)(clock.getElapsedTime().asSeconds() + 0.5f) % 2 - 0.5f) * 0.03f);
 	}
-	Move(0, 0, cam.ySpeed);
-	cam.ySpeed -= 0.002f;
+	if (cam.speed.x != 0 || cam.speed.z != 0 || cam.speed.y != 0 || cam.airtime>0) {
+		Move(cam.speed.x, cam.speed.z, cam.speed.y);
+	}
 	UpdateDyn();
+}
+
+void World::Move(float forw, float right)
+{
+	if(forw<2)
+		cam.speed.x = forw;
+	if(right<2)
+		cam.speed.z = right;
 }
 
 void World::Turn(float angle)
 {
-	cam.rotation += angle;
+	cam.rotation += angle*cam.speedM;
 	cam.rotation = LoopAngle(cam.rotation);
 	//std::cout << cam.rotation << "\n";
 }
 
 void World::LookUp(float angle)
 {
+	angle *= cam.speedM;
 	if (std::abs(cam.hrotation + angle) + cam.fovV/2 < PIH)
 		cam.hrotation += angle;
 	//std::cout << cam.hrotation / PI * 180 << "\n";
@@ -95,10 +105,12 @@ void World::LookUp(float angle)
 
 void World::Move(float forw, float right, float up)
 {
+	cam.speed.y -= 0.002f;
 	float dirx = std::sin(cam.rotation);
 	float dirz = std::cos(cam.rotation);
 	float xlimits[2] = { -0.1f,0.1f }; float ylimits[2] = { -0.8f,0.1f }; float zlimits[2] = { -0.1f,0.1f };
 	sf::Vector3f ldir = sf::Vector3f(forw * dirx + right * dirz, up, forw * dirz - right * dirx);
+	ldir.x *= cam.speedM; ldir.z *= cam.speedM;
 	sf::Vector3i testPos;
 	for (unsigned int x = 0; x < 2; x++) {
 		for (unsigned int y = 0; y < 2; y++) {
@@ -109,7 +121,7 @@ void World::Move(float forw, float right, float up)
 				testPos.x = (int)(cam.pos.x + xlimits[x]); testPos.y = (int)(cam.pos.y + ldir.y + ylimits[y]);
 				if (blocks[testPos.x][testPos.y][testPos.z].textureID != 0) {
 					ldir.y = 0;
-					cam.ySpeed = 0;
+					cam.speed.y = 0;
 				}
 				testPos.y = (int)(cam.pos.y + ylimits[y]); testPos.z = (int)(cam.pos.z + ldir.z + zlimits[z]);
 				if (blocks[testPos.x][testPos.y][testPos.z].textureID != 0)
@@ -117,13 +129,17 @@ void World::Move(float forw, float right, float up)
 			}
 		}
 	}
+	if (ldir.x || ldir.y || ldir.z)
+		cam.airtime = 0.2f;
+	else if (cam.airtime > 0)
+		cam.airtime -= 0.016f;		//TODO
 	cam.pos += ldir;
-	//std::cout << cam.pos.x << "; " << cam.pos.y << "; " << cam.pos.z << "\n";
+	std::cout << cam.pos.x << "; " << cam.pos.y << "; " << cam.pos.z << "\n";
 }
 
 void World::Jump(float speed)
 {
-	cam.ySpeed = speed;
+	cam.speed.y = speed;
 }
 
 void World::DynMove(unsigned int index, sf::Vector3f dir)
@@ -215,22 +231,23 @@ void World::Raycast(Ray* r)
 		tryPos += dir * raySpeed;
 
 		
-		if (DI<10 && tryDist >= dyn[DI].distToCamera) {			//Dynamic objects
-			raySpeed = (dyn[DI].distToCamera - dist);				//Reduce rayspeed to hit object
+		while (DI<10 && tryDist >= dyn[DI].distToCamera) {			//Dynamic objects
+			raySpeed = dyn[DI].distToCamera - dist;				//Reduce rayspeed to hit object
 			dist = dyn[DI].distToCamera;
 			pos += dir * raySpeed;									//Set new position
 			sf::Vector3f to = dyn[DI].pos-pos;						//Vector from ray pos to object pos (middle, y ignored)
 			float w = to.x * to.x + to.z * to.z;
-			if (std::abs(to.y) < dyn[DI].size.y && (w < dyn[DI].size.x)) {
-				float ang = VAngleXZ(dir, VNormalizeXZ(dyn[DI].pos - cam.pos))*dist;
+			float sizey = dyn[DI].size.y * r->yscale;
+			if (std::abs(to.y) < sizey && (w < dyn[DI].size.x)) {
+				float ang = VAngleXZ(dir, VNormalizeXZ(dyn[DI].pos - cam.pos)) * dist;
 				sf::Image* tex = &dynTextures[dyn[DI].textureID];
 				sf::Vector2u tsize = tex->getSize();
-				int x = (0.5f + ang / PI * 0.5f / dyn[DI].size.x) * (tsize.x-1);
-				int y = (dyn[DI].size.y + to.y) / dyn[DI].size.y / 2 * (tsize.y-1);
+				int x = (0.5f + ang / PI * 0.5f / dyn[DI].size.x) * (tsize.x - 1);
+				int y = (sizey + to.y) / sizey / 2 * (tsize.y - 1);
 				x = std::max(x, 0); y = std::max(y, 0);
-				sf::Color c = tex->getPixel(x,y);
+				sf::Color c = tex->getPixel(x, y);
 				if (c.a > 127) {				//Transparency check
-					float darken = (1.5f * (dist+std::abs(cam.pos.y-pos.y)) + 2 * std::sin(std::abs(r->angle - cam.rotation))) * dist;
+					float darken = (1.5f * (dist + std::abs(cam.pos.y - pos.y)) + 2 * std::sin(std::abs(r->angle - cam.rotation))) * dist;
 					c.r = std::max(0.0f, c.r - darken); c.g = std::max(0.0f, c.g - darken); c.b = std::max(0.0f, c.b - darken);
 					r->c = c;
 					return;
