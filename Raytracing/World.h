@@ -23,14 +23,15 @@ struct Block {
 
 struct Dynamic {
 	short textureID = -1;
-	sf::Vector3f pos = { 17.5f, 4.45f, 17.0f };
+	sf::Vector3f pos = { 12.5f, 1.45f, 18.5f };
 	sf::Vector2f size = sf::Vector2f(0.15f, 0.45f);
 	float distToCamera = 1000;
 };
 
 struct Light {
 	sf::Vector3f pos = { 17.5f, 2.0f, 17.5f };
-	float intensity = 1;
+	sf::Color c = sf::Color::White;
+	float intensity = 2;
 };
 
 struct Ray {
@@ -70,7 +71,7 @@ private:
 	float VLengthXZ(sf::Vector3f v);
 	void Raycast(Ray* r);
 	bool LRaycast(Ray* r);
-	float maxIter = 17;
+	float maxIter = 45;
 	sf::Color* colors = new sf::Color[10];
 	sf::Image* textures = new sf::Image[10];
 	sf::Image* dynTextures = new sf::Image[10];
