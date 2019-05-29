@@ -14,12 +14,11 @@ struct Camera {
 	float airtime = 0.2f;
 	float speedM = 0.05f;
 	sf::Vector3f speed;
+	sf::Vector3f velocity;
 };
 
 struct Block {
 	short textureID = 0;
-	short l[6];
-	float lit = 0;
 };
 
 struct Dynamic {
@@ -28,24 +27,22 @@ struct Dynamic {
 	sf::Vector3f dir = { 0, 0, 0 };
 	sf::Vector2f size = sf::Vector2f(0.15f, 0.45f);
 	float distToCamera = 1000;
-	float blocklit = 0;
-	float lit = 0;
+	float r = 1;
+	float g = 1;
+	float b = 1;
 	bool unlit = false;
 	bool projectile = false;
 	float aliveTime = 0;
 	short dlightIndex = -1;
 };
 
-struct Dlight {
-	sf::Vector3f pos = { 12.5f, 1.45f, 18.5f };
-	float intensity = 0;
-	sf::Color c = sf::Color::White;
-};
-
 struct Light {
 	sf::Vector3f pos = { 17.5f, 2.0f, 17.5f };
-	sf::Color c = sf::Color::White;
 	float intensity = 2;
+	float r = 1;
+	float g = 1;
+	float b = 1;
+	bool shadows = true;
 };
 
 struct Ray {
@@ -91,9 +88,8 @@ private:
 	sf::Color* colors = new sf::Color[10];
 	sf::Image* textures = new sf::Image[10];
 	sf::Image* dynTextures = new sf::Image[10];
-	Light* lights = new Light[10];
 	std::vector<Dynamic> dyn;
-	std::vector<Dlight> dlights;
+	std::vector<Light> dlights;
 	Ray* rays = new Ray[4];
 	sf::Clock clock;
 };

@@ -3,9 +3,11 @@
 World::World() {
 	srand(time(NULL));
 	for (unsigned int i = 0; i < 10; i++) {
-		lights[i].pos.x = 6 + (i % 2) * 11;
-		lights[i].pos.z = 3 + 6 * (i%5);
-		lights[i].pos.y = 1.9f + 5 * (i > 4 ? 1 : 0);
+		Light l;
+		l.pos.x = 6 + (i % 2) * 11;
+		l.pos.z = 3 + 6 * (i%5);
+		l.pos.y = 1.9f + 5 * (i > 4 ? 1 : 0);
+		dlights.push_back(l);
 	}
 	for (unsigned int x = 0; x < 30; x++) {
 		for (unsigned int y = 0; y < 10; y++) {
@@ -21,56 +23,7 @@ World::World() {
 			}
 		}
 	}
-	for (unsigned int x = 0; x < 30; x++) {
-		for (unsigned int y = 0; y < 10; y++) {
-			for (unsigned int z = 0; z < 30; z++) {
-				for (unsigned int i = 0; i < 6; i++) {		//Lights
-					blocks[x][y][z].l[i] = -1;
-					float dist = 1000;
-					for (unsigned int j = 0; j < 10; j++) {
-						if (i == 0 && lights[j].pos.x > x + 1 ||
-							i == 1 && lights[j].pos.x < x ||
-							i == 2 && lights[j].pos.y > y + 1 ||
-							i == 3 && lights[j].pos.y < y ||
-							i == 4 && lights[j].pos.z > z + 1 ||
-							i == 5 && lights[j].pos.z < z) {
-							sf::Vector3f testPos = sf::Vector3f(x + (i == 0 ? 1 : i == 1 ? 0 : 0.5f), y + (i == 2 ? 1 : i == 3 ? 0 : 0.5f), z + (i == 4 ? 1 : i == 5 ? 0 : 0.5f));
-							float tryDist = VLength(lights[j].pos - testPos);
-							if (tryDist < dist && tryDist < 8) {
-								for (unsigned int k = 0; k < 10; k++) {
-									for (unsigned int p = 0; p < 10; p++) {
-										if (i < 2) {
-											testPos.y = (int)testPos.y + k * 0.1f;
-											testPos.z = (int)testPos.z + p * 0.1f;
-										}
-										else if (i < 4) {
-											testPos.x = (int)testPos.x + k * 0.1f;
-											testPos.z = (int)testPos.z + p * 0.1f;
-										}
-										else {
-											testPos.x = (int)testPos.x + k * 0.1f;
-											testPos.y = (int)testPos.y + p * 0.1f;
-										}
-										rays[0].pos = testPos;
-										rays[0].dir = lights[j].pos - testPos;
-										rays[0].maxDist = tryDist;
-										rays[0].dir = VNormalize(rays[0].dir);
-										if (LRaycast(&rays[0])) {
-											blocks[x][y][z].l[i] = j;
-											dist = tryDist;
-											k = 99;
-											blocks[x][y][z].lit += std::max(lights[j].intensity / dist / dist - dist * 0.01f, 0.0f);
-											break;
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
+
 	colors[0] = sf::Color(0, 0, 0, 255);
 	colors[1] = sf::Color(100, 100, 100, 255);
 	colors[2] = sf::Color(200, 200, 200, 255);
@@ -131,7 +84,7 @@ void World::UpdateScreenVertex(sf::VertexArray* v, short num, short cycle)
 
 void World::UpdateWorld()
 {
-	if (cam.speed.x != 0 || cam.speed.z != 0 || cam.speed.y != 0 || cam.airtime>0) {
+	if (cam.velocity.x != 0 || cam.velocity.z != 0 || cam.velocity.y != 0 || cam.airtime>0) {
 		Move(cam.speed.x, cam.speed.z, cam.speed.y);
 	}
 	UpdateDyn();
@@ -149,6 +102,11 @@ void World::Turn(float angle)
 {
 	cam.rotation += angle*cam.speedM;
 	cam.rotation = LoopAngle(cam.rotation);
+	float dirx = std::sin(cam.rotation);
+	float dirz = std::cos(cam.rotation);
+	cam.velocity = sf::Vector3f(cam.speed.x * dirx + cam.speed.z * dirz, cam.velocity.y, cam.speed.x * dirz - cam.speed.z * dirx);
+	cam.velocity.x *= cam.speedM;
+	cam.velocity.z *= cam.speedM;
 	//std::cout << cam.rotation << "\n";
 }
 
@@ -162,54 +120,52 @@ void World::LookUp(float angle)
 
 void World::Move(float forw, float right, float up)
 {
-	cam.speed.y -= 0.002f;
-	float dirx = std::sin(cam.rotation);
-	float dirz = std::cos(cam.rotation);
+	cam.velocity.y -= 0.002f;
 	float xlimits[2] = { -0.1f,0.1f }; float ylimits[2] = { -0.8f,0.1f }; float zlimits[2] = { -0.1f,0.1f };
-	sf::Vector3f ldir = sf::Vector3f(forw * dirx + right * dirz, up, forw * dirz - right * dirx);
-	ldir.x *= cam.speedM; ldir.z *= cam.speedM;
 	sf::Vector3i testPos;
 	for (unsigned int x = 0; x < 2; x++) {
 		for (unsigned int y = 0; y < 2; y++) {
 			for (unsigned int z = 0; z < 2; z++) {
-				testPos.x = (int)(cam.pos.x + ldir.x + xlimits[x]); testPos.y = (int)(cam.pos.y + ylimits[y]); testPos.z = (int)(cam.pos.z + zlimits[z]);
+				testPos.x = (int)(cam.pos.x + cam.velocity.x + xlimits[x]); testPos.y = (int)(cam.pos.y + ylimits[y]); testPos.z = (int)(cam.pos.z + zlimits[z]);
 				if (blocks[testPos.x][testPos.y][testPos.z].textureID != 0)
-					ldir.x = 0;
-				testPos.x = (int)(cam.pos.x + xlimits[x]); testPos.y = (int)(cam.pos.y + ldir.y + ylimits[y]);
+					cam.velocity.x = 0;
+				testPos.x = (int)(cam.pos.x + xlimits[x]); testPos.y = (int)(cam.pos.y + cam.velocity.y + ylimits[y]);
 				if (blocks[testPos.x][testPos.y][testPos.z].textureID != 0) {
-					ldir.y = 0;
-					cam.speed.y = 0;
+					cam.velocity.y = 0;
 				}
-				testPos.y = (int)(cam.pos.y + ylimits[y]); testPos.z = (int)(cam.pos.z + ldir.z + zlimits[z]);
+				testPos.y = (int)(cam.pos.y + ylimits[y]); testPos.z = (int)(cam.pos.z + cam.velocity.z + zlimits[z]);
 				if (blocks[testPos.x][testPos.y][testPos.z].textureID != 0)
-					ldir.z = 0;
+					cam.velocity.z = 0;
 			}
 		}
 	}
-	if (ldir.x || ldir.y || ldir.z)
+	if (cam.velocity.x || cam.velocity.y || cam.velocity.z)
 		cam.airtime = 0.2f;
 	else if (cam.airtime > 0)
 		cam.airtime -= 0.016f;		//TODO
-	cam.pos += ldir;
+	cam.pos += cam.velocity;
 	//std::cout << cam.pos.x << "; " << cam.pos.y << "; " << cam.pos.z << "\n";
 }
 
 void World::Jump(float speed)
 {
-	cam.speed.y = speed;
+	cam.velocity.y = speed;
 }
 
 void World::Shoot()
 {
 	Dynamic d;
-	Dlight l;
+	Light l;
 	d.dir = sf::Vector3f(std::sin(cam.rotation), std::sin(cam.hrotation), std::cos(cam.rotation));
+	d.dir += cam.velocity * 2.0f;
+	d.dir *= 0.5f;
 	d.pos = cam.pos;
 	d.pos.y -= 0.2f;
 	d.size.x = 0.01f; d.size.y = 0.03f;
-	l.intensity = 0.4f;
+	l.intensity = 0.2f;
+	l.b = 0.5f;
+	l.g = 0.5f;
 	d.unlit = true;
-	d.lit = 1;
 	d.projectile = true;
 	d.textureID = 1;
 	d.dlightIndex = dlights.size();
@@ -248,12 +204,17 @@ void World::UpdateDyn()
 		Dynamic* l = &dyn.at(i);
 		sf::Vector3i posi(l->pos);
 		if (!l->unlit) {
-			l->blocklit += (blocks[posi.x][posi.y][posi.z].lit - l->blocklit) * 0.1f;
-			l->lit = l->blocklit;
+			l->r = 0; l->g = 0; l->b = 0;
 			for (unsigned int j = 0; j < dlights.size(); j++) {
 				if (dlights.at(j).intensity > 0) {
 					float dist = VLengthS(l->pos - dlights.at(j).pos);
-					l->lit += std::max(dlights.at(j).intensity / dist - dist * 0.01f, 0.0f);
+					dist = std::max(dist, 1.0f);
+					float add = dlights.at(j).intensity / dist - dist * 0.002f;
+					if (add > 0) {
+						l->r += add * dlights.at(j).r;
+						l->g += add * dlights.at(j).g;
+						l->b += add * dlights.at(j).b;
+					}
 				}
 			}
 		}
@@ -297,8 +258,7 @@ inline float World::VLength(sf::Vector2f v)
 
 inline float World::VAngleXZ(sf::Vector3f a, sf::Vector3f b)
 {
-	float ang = std::atan2(b.z,b.x) - std::atan2(a.z,a.x);
-	return ang >= PI ? ang - 2 * PI : (ang < -PI ? ang + 2 * PI : ang);
+	return std::atan2(b.z,b.x) - std::atan2(a.z,a.x);
 }
 
 inline sf::Vector3f World::VNormalize(sf::Vector3f v)
@@ -372,8 +332,7 @@ void World::Raycast(Ray* r)
 					x = std::max(x, 0); y = std::max(y, 0);
 					sf::Color c = tex->getPixel(x, y);
 					if (c.a > 127) {				//Transparency check
-						float lit = d->lit;
-						c.r = std::min(c.r * lit, 255.0f); c.g = std::min(c.g * lit, 255.0f); c.b = std::min(c.b * lit, 255.0f);
+						c.r = std::min(c.r * d->r, 255.0f); c.g = std::min(c.g * d->g, 255.0f); c.b = std::min(c.b * d->b, 255.0f);
 						r->c = c;
 						return;
 					}
@@ -388,7 +347,7 @@ void World::Raycast(Ray* r)
 		//if (pos.x < 0 || pos.y < 0 || pos.z < 0 || pos.x >= 30 || pos.y >= 10 || pos.z >= 30)	//Check out of bounds. Shouldn't be necessary if area is covered
 		//	break;
 		Block* block = &blocks[posi.x][posi.y][posi.z];
-		if (block->textureID != 0) {
+		if (block->textureID != 0) {								//Hit a block
 			sf::Color c;
 			int lindex = 0;
 			xray -= dir.x * 0.001f;
@@ -419,29 +378,40 @@ void World::Raycast(Ray* r)
 					c = tex->getPixel(tsize.x * (pos.x-posi.x), tsize.y * (pos.y-posi.y));
 				}
 			}
-			float lit = std::max(0.1f / dist - dist * 0.0001f, 0.02f);
-			/*if(dist<2)
-				lit = 0.2f / (dist + std::abs(cam.pos.y - pos.y) + std::sin(std::abs(r->angle - cam.rotation)));*/
-			lindex = block->l[lindex];
-			if (lindex >= 0) {
-				sf::Vector3f newDir = lights[lindex].pos - pos;
-				dist = VLength(newDir);
-				r->maxDist = dist;
-				newDir = VNormalize(newDir);
-				r->dir = newDir;
-				r->pos = pos;
-				if (LRaycast(r)) {
-					lit += std::max(lights[lindex].intensity / dist / dist - dist*0.01f,0.0f);
-					c *= lights[lindex].c;
-				}
-				r->dir = dir;
-			}
+			float litr = std::max(0.05f / dist - dist * 0.0001f, 0.0f);
+			float litg = litr;
+			float litb = litr;
+
 			for (unsigned int j = 0; j < dlights.size(); j++) {
 				dist = VLengthS(pos - dlights.at(j).pos);
-				lit += std::max(dlights.at(j).intensity / dist - dist * 0.01f, 0.0f);
+				float add = dlights.at(j).intensity / dist - dist * 0.002f;
+				if (add > 0) {
+					if (dlights.at(j).shadows) {
+						sf::Vector3f newDir = dlights.at(j).pos - pos;
+						dist = VLength(newDir);
+						newDir /= dist;
+						float angleMult = (lindex == 0 ? newDir.x : lindex == 1 ? -newDir.x : lindex == 2 ? newDir.y : lindex == 3 ? -newDir.y : lindex == 4 ? newDir.z : lindex == 5 ? -newDir.z : 0)*0.7f+0.3f;
+						if (angleMult > 0) {
+							r->maxDist = dist;
+							r->dir = newDir;
+							r->pos = pos;
+							if (LRaycast(r)) {
+								add *= angleMult;
+								litr += add * dlights.at(j).r;
+								litg += add * dlights.at(j).g;
+								litb += add * dlights.at(j).b;
+							}
+							r->dir = dir;
+						}
+					}
+					else {						
+						litr += add * dlights.at(j).r;
+						litg += add * dlights.at(j).g;
+						litb += add * dlights.at(j).b;
+					}
+				}
 			}
-			lit = std::max(lit, 0.0f);
-			c.r = std::min(c.r * lit, 255.0f); c.g = std::min(c.g * lit, 255.0f); c.b = std::min(c.b * lit, 255.0f);
+			c.r = std::min(c.r * litr, 255.0f); c.g = std::min(c.g * litg, 255.0f); c.b = std::min(c.b * litb, 255.0f);
 			r->c = c;
 			return;
 		}
