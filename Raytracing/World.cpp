@@ -58,6 +58,7 @@ World::World() {
 											blocks[x][y][z].l[i] = j;
 											dist = tryDist;
 											k = 99;
+											blocks[x][y][z].lit += std::max(lights[j].intensity / dist / dist - dist * 0.01f, 0.0f);
 											break;
 										}
 									}
@@ -127,11 +128,11 @@ void World::UpdateWorld()
 {
 	for (unsigned int i = 0; i < 10; i++) {
 		DynMove(i, sf::Vector3f((int)clock.getElapsedTime().asSeconds() % 2 - 0.5f, 0, (int)(clock.getElapsedTime().asSeconds() + 0.5f) % 2 - 0.5f) * 0.03f);
-		float sine = std::abs(std::sin(clock.getElapsedTime().asSeconds()/4));
+		/*float sine = std::abs(std::sin(clock.getElapsedTime().asSeconds()/4));
 		if(i%2)
 			lights[i].c.g = sine*255;
 		else
-			lights[i].c.b = sine*255;
+			lights[i].c.b = sine*255;*/
 	}
 	if (cam.speed.x != 0 || cam.speed.z != 0 || cam.speed.y != 0 || cam.airtime>0) {
 		Move(cam.speed.x, cam.speed.z, cam.speed.y);
@@ -204,6 +205,7 @@ void World::Jump(float speed)
 void World::DynMove(unsigned int index, sf::Vector3f dir)
 {
 	dyn[index].pos += dir;
+	dyn[index].lit += (blocks[(int)dyn[index].pos.x][(int)dyn[index].pos.y][(int)dyn[index].pos.z].lit - dyn[index].lit)*0.1f;
 }
 
 void World::UpdateDyn()
@@ -309,8 +311,9 @@ void World::Raycast(Ray* r)
 				x = std::max(x, 0); y = std::max(y, 0);
 				sf::Color c = tex->getPixel(x, y);
 				if (c.a > 127) {				//Transparency check
-					float lit = 1.5f / (dist + std::abs(cam.pos.y - pos.y) + std::sin(std::abs(r->angle - cam.rotation))) - dist * 0.01f;
-					lit = std::min(std::max(lit, 0.0f),1.0f);
+					//float lit = 1.5f / (dist + std::abs(cam.pos.y - pos.y) + std::sin(std::abs(r->angle - cam.rotation))) - dist * 0.01f;
+					//lit = std::min(std::max(lit, 0.0f),1.0f);
+					float lit = dyn[DI].lit;
 					c.r = c.r * lit; c.g = c.g * lit; c.b = c.b * lit;
 					r->c = c;
 					return;

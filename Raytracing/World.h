@@ -19,6 +19,7 @@ struct Camera {
 struct Block {
 	short textureID = 0;
 	short l[6];
+	float lit = 0;
 };
 
 struct Dynamic {
@@ -26,6 +27,7 @@ struct Dynamic {
 	sf::Vector3f pos = { 12.5f, 1.45f, 18.5f };
 	sf::Vector2f size = sf::Vector2f(0.15f, 0.45f);
 	float distToCamera = 1000;
+	float lit = 0;
 };
 
 struct Light {
