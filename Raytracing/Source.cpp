@@ -68,6 +68,9 @@ void main() {
 					world.Jump(0.05f * sign);
 				else if (event.key.code == sf::Keyboard::LShift)
 					world.cam.speedM = sign * 0.05f + 0.05f;
+				if (sign == 1 && event.key.code == sf::Keyboard::LControl) {
+					world.Shoot();
+				}
 			}
 		}
 

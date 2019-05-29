@@ -25,9 +25,16 @@ struct Block {
 struct Dynamic {
 	short textureID = -1;
 	sf::Vector3f pos = { 12.5f, 1.45f, 18.5f };
+	sf::Vector3f dir = { 0, 0, 0 };
 	sf::Vector2f size = sf::Vector2f(0.15f, 0.45f);
 	float distToCamera = 1000;
+	float blocklit = 0;
 	float lit = 0;
+	bool unlit = false;
+	sf::Color c = sf::Color::White;
+	float intensity = 0;
+	bool projectile = false;
+	float aliveTime = 0;
 };
 
 struct Light {
@@ -54,6 +61,7 @@ public:
 	void Turn(float angle);
 	void LookUp(float angle);
 	void Jump(float speed);
+	void Shoot();
 	int width = 320;
 	int height = 180;
 	Camera cam;
@@ -61,7 +69,6 @@ public:
 	~World();
 private:
 	void Move(float forw, float right, float up);
-	void DynMove(unsigned int index, sf::Vector3f dir);
 	void UpdateDyn();
 	float LoopAngle(float angle);
 	sf::Vector2f VNormalize(sf::Vector2f v);
@@ -71,14 +78,15 @@ private:
 	sf::Vector3f VNormalizeXZ(sf::Vector3f v);
 	float VLength(sf::Vector3f v);
 	float VLengthXZ(sf::Vector3f v);
+	float VLengthS(sf::Vector3f v);
 	void Raycast(Ray* r);
 	bool LRaycast(Ray* r);
 	float maxIter = 45;
 	sf::Color* colors = new sf::Color[10];
 	sf::Image* textures = new sf::Image[10];
 	sf::Image* dynTextures = new sf::Image[10];
-	Dynamic* dyn = new Dynamic[10];
 	Light* lights = new Light[10];
+	std::vector<Dynamic> dyn;
 	Ray* rays = new Ray[4];
 	sf::Clock clock;
 };
