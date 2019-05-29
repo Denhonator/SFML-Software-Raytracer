@@ -24,6 +24,9 @@ void RenderThread(int num) {
 }
 
 void main() {
+	sf::Vector2i mousePos(0, 0);
+	bool lockMouse = true;
+
 	sf::Sprite screenSprite;
 	screenTexture.create(width, height, false);
 	sf::RenderWindow window(sf::VideoMode(1920, 1080), "Rays");
@@ -68,20 +71,45 @@ void main() {
 					world.Jump(0.05f * sign);
 				else if (event.key.code == sf::Keyboard::LShift)
 					world.cam.speedM = sign * 0.05f + 0.05f;
-				if (sign == 1 && event.key.code == sf::Keyboard::LControl) {
+				else if (event.key.code == sf::Keyboard::Escape)
+					lockMouse = false;
+			}
+
+			else if (event.type == sf::Event::MouseButtonPressed) {
+				if (event.mouseButton.button == sf::Mouse::Button::Left)
 					world.Shoot();
-				}
+			}
+
+			else if (event.type == sf::Event::MouseMoved && lockMouse) {
+				world.Turn((event.mouseMove.x - mousePos.x) * 0.01f);
+				world.LookUp((mousePos.y - event.mouseMove.y) * 0.01f);
+				mousePos = sf::Vector2i(event.mouseMove.x, event.mouseMove.y);
 			}
 		}
 
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
+		if (event.type == sf::Event::MouseButtonPressed) {
+			lockMouse = true;
+		}
+
+		if (event.type == sf::Event::LostFocus) {
+			lockMouse = false;
+		}
+
+		window.setMouseCursorGrabbed(lockMouse);
+		window.setMouseCursorVisible(!lockMouse);
+		if (lockMouse) {
+			sf::Mouse::setPosition(sf::Vector2i(width / 2, height / 2), window);
+			mousePos.x = width / 2; mousePos.y = height / 2;
+		}
+
+		/*if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
 			world.Turn(-1 * 0.3f);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
 			world.Turn(1 * 0.3f);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
 			world.LookUp(1 * 0.3f);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
-			world.LookUp(-1 * 0.3f);
+			world.LookUp(-1 * 0.3f);*/
 
 		world.UpdateWorld();
 

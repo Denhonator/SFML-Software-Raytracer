@@ -31,10 +31,15 @@ struct Dynamic {
 	float blocklit = 0;
 	float lit = 0;
 	bool unlit = false;
-	sf::Color c = sf::Color::White;
-	float intensity = 0;
 	bool projectile = false;
 	float aliveTime = 0;
+	short dlightIndex = -1;
+};
+
+struct Dlight {
+	sf::Vector3f pos = { 12.5f, 1.45f, 18.5f };
+	float intensity = 0;
+	sf::Color c = sf::Color::White;
 };
 
 struct Light {
@@ -70,6 +75,7 @@ public:
 private:
 	void Move(float forw, float right, float up);
 	void UpdateDyn();
+	void RemoveDyn(unsigned int index);
 	float LoopAngle(float angle);
 	sf::Vector2f VNormalize(sf::Vector2f v);
 	float VLength(sf::Vector2f v);
@@ -87,6 +93,7 @@ private:
 	sf::Image* dynTextures = new sf::Image[10];
 	Light* lights = new Light[10];
 	std::vector<Dynamic> dyn;
+	std::vector<Dlight> dlights;
 	Ray* rays = new Ray[4];
 	sf::Clock clock;
 };

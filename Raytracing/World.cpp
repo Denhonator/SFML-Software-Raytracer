@@ -202,13 +202,18 @@ void World::Jump(float speed)
 void World::Shoot()
 {
 	Dynamic d;
-	d.pos = cam.pos;
+	Dlight l;
 	d.dir = sf::Vector3f(std::sin(cam.rotation), std::sin(cam.hrotation), std::cos(cam.rotation));
+	d.pos = cam.pos;
+	d.pos.y -= 0.2f;
 	d.size.x = 0.01f; d.size.y = 0.03f;
-	d.intensity = 1;
+	l.intensity = 0.4f;
 	d.unlit = true;
+	d.lit = 1;
 	d.projectile = true;
 	d.textureID = 1;
+	d.dlightIndex = dlights.size();
+	dlights.push_back(l);
 	dyn.push_back(d);
 }
 
@@ -217,9 +222,12 @@ void World::UpdateDyn()
 	for (unsigned int i = 0; i < dyn.size(); i++) {
 		Dynamic* l = &dyn.at(i);
 		l->pos += l->dir * 0.16f;
+		if (l->dlightIndex >= 0) {
+			dlights.at(l->dlightIndex).pos = l->pos;
+		}
 		sf::Vector3i posi(l->pos+l->dir);
 		if (l->projectile && blocks[posi.x][posi.y][posi.z].textureID != 0)
-			dyn.erase(dyn.begin() + i);
+			RemoveDyn(i);
 		else if (blocks[posi.x][posi.y][posi.z].textureID != 0 && (l->dir.x || l->dir.y || l->dir.z)) {
 			float distx = l->pos.x - 0.5f - posi.x; float disty = l->pos.y - 0.5f - posi.y; float distz = l->pos.z - 0.5f - posi.z;
 			if (distx<0.05f)
@@ -232,7 +240,7 @@ void World::UpdateDyn()
 		if (l->aliveTime > 0) {
 			l->aliveTime -= 0.016f;
 			if (l->aliveTime <= 0)
-				dyn.erase(dyn.begin() + i);
+				RemoveDyn(i);
 		}
 	}
 
@@ -242,10 +250,10 @@ void World::UpdateDyn()
 		if (!l->unlit) {
 			l->blocklit += (blocks[posi.x][posi.y][posi.z].lit - l->blocklit) * 0.1f;
 			l->lit = l->blocklit;
-			for (unsigned int j = 0; j < dyn.size(); j++) {
-				if (dyn.at(j).intensity > 0) {
-					float dist = VLengthS(l->pos - dyn.at(j).pos);
-					l->lit += std::max(dyn.at(j).intensity / dist - dist * 0.01f, 0.0f);
+			for (unsigned int j = 0; j < dlights.size(); j++) {
+				if (dlights.at(j).intensity > 0) {
+					float dist = VLengthS(l->pos - dlights.at(j).pos);
+					l->lit += std::max(dlights.at(j).intensity / dist - dist * 0.01f, 0.0f);
 				}
 			}
 		}
@@ -255,6 +263,19 @@ void World::UpdateDyn()
 
 		if (i>0 && dyn.at(i).distToCamera < dyn.at(i-1).distToCamera) {
 			std::iter_swap(dyn.begin() + i, dyn.begin() + i - 1);
+		}
+	}
+}
+
+void World::RemoveDyn(unsigned int index)
+{
+	unsigned int lindex = dyn.at(index).dlightIndex;
+	dyn.erase(dyn.begin() + index);
+	if (lindex >= 0) {
+		dlights.erase(dlights.begin() + lindex);
+		for (unsigned int i = 0; i < dyn.size(); i++) {
+			if (dyn.at(i).dlightIndex > lindex)
+				dyn.at(i).dlightIndex--;
 		}
 	}
 }
@@ -351,7 +372,7 @@ void World::Raycast(Ray* r)
 					x = std::max(x, 0); y = std::max(y, 0);
 					sf::Color c = tex->getPixel(x, y);
 					if (c.a > 127) {				//Transparency check
-						float lit = d->lit + d->intensity;
+						float lit = d->lit;
 						c.r = std::min(c.r * lit, 255.0f); c.g = std::min(c.g * lit, 255.0f); c.b = std::min(c.b * lit, 255.0f);
 						r->c = c;
 						return;
@@ -415,11 +436,9 @@ void World::Raycast(Ray* r)
 				}
 				r->dir = dir;
 			}
-			for (unsigned int j = 0; j < dyn.size(); j++) {
-				if (dyn.at(j).intensity > 0) {
-					dist = VLengthS(pos - dyn.at(j).pos);
-					lit += std::max(dyn.at(j).intensity / dist - dist * 0.01f, 0.0f);
-				}
+			for (unsigned int j = 0; j < dlights.size(); j++) {
+				dist = VLengthS(pos - dlights.at(j).pos);
+				lit += std::max(dlights.at(j).intensity / dist - dist * 0.01f, 0.0f);
 			}
 			lit = std::max(lit, 0.0f);
 			c.r = std::min(c.r * lit, 255.0f); c.g = std::min(c.g * lit, 255.0f); c.b = std::min(c.b * lit, 255.0f);
