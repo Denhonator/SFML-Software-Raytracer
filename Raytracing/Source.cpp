@@ -19,7 +19,8 @@ void RenderThread(int num) {
 			draw[num] -= 1;
 			cycle = (cycle + 1) % 4;
 		}
-		sf::sleep(sf::Time(sf::milliseconds(1)));
+		else
+			sf::sleep(sf::Time(sf::milliseconds(1)));
 	}
 }
 
@@ -119,7 +120,7 @@ void main() {
 
 		screenTexture.draw(screenVertex);
 		screenTexture.display();
-		window.clear();
+		//window.clear();
 		window.draw(screenSprite);
 		window.display();
 	}
