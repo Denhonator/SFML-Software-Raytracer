@@ -2,6 +2,7 @@
 
 World::World() {
 	srand(time(NULL));
+	alights.reserve(sizeof(Light*) * 50);
 	for (unsigned int i = 0; i < 10; i++) {
 		Light l;
 		Dynamic d;
@@ -9,23 +10,23 @@ World::World() {
 		d.pos.z = 3 + 6 * (i%5);
 		d.pos.y = 1.9f + 5 * (i > 4 ? 1 : 0);
 		d.textureID = 1;
-		d.dlightIndex = dlights.size();
+		d.dlightIndex = lights.size();
 		d.unlit = true;
 		d.size.x = 0.01f; d.size.y = 0.03f;
-		dlights.push_back(l);
+		lights.push_back(l);
 		dyn.push_back(d);
 	}
-	for (int x = 0; x < 1000; x++) {
+	for (int x = 0; x < 100; x++) {
 		for (int y = 0; y < 10; y++) {
-			for (int z = 0; z < 30; z++) {
+			for (int z = 0; z < 100; z++) {
 				if (y == 0)
-					blocks.insert({ (x << 20) + (y << 10) + z, Block{ 2 } });
-				if ((x == 0 || x == 999 || z == 0 || z == 29) || (x % 9 == 0 && z % 5 == 0))
 					blocks.insert({ (x << 20) + (y << 10) + z, Block{ 1 } });
+				if ((x == 0 || x == 99 || z == 0 || z == 99) || (x % 9 == 0 && z % 5 == 0))
+					blocks.insert({ (x << 20) + (y << 10) + z, Block{ 0 } });
 				else if (y == 4 && x % 3 != 0 && z % 4 != 0)
-					blocks.insert({ (x << 20) + (y << 10) + z, Block{ 4 } });
-				if (y == 9)
 					blocks.insert({ (x << 20) + (y << 10) + z, Block{ 3 } });
+				if (y == 9)
+					blocks.insert({ (x << 20) + (y << 10) + z, Block{ 2 } });
 			}
 		}
 	}
@@ -47,7 +48,7 @@ World::World() {
 		Dynamic d;
 		d.textureID = 0;
 		d.pos.x += i*0.5f;
-		//d.dir = sf::Vector3f((rand() % 40 - rand() % 20) * 0.01f, 0, (rand() % 40 - rand() % 20) * 0.01f);
+		d.dir = sf::Vector3f((rand() % 40 - rand() % 20) * 0.01f, 0, (rand() % 40 - rand() % 20) * 0.01f);
 		dyn.push_back(d);
 	}
 
@@ -58,10 +59,8 @@ World::World() {
 World::~World() {
 }
 
-void World::UpdateScreenVertex(sf::VertexArray* v, short num, short cycle)
+void World::UpdateScreenVertex(sf::VertexArray* v, short ystart, short yadd, short xstart, short xadd)
 {
-	short xoff = (num & 1) * 2 + (cycle & 2 ? 1 : 0);
-	short yoff = (num & 2) + (cycle & 1);
 	float vStart = cam.fovV / 2;
 	float vIncreaseBy = cam.fovV / height;
 	float vOff = std::sin(cam.hrotation);
@@ -69,8 +68,8 @@ void World::UpdateScreenVertex(sf::VertexArray* v, short num, short cycle)
 	float hIncreaseBy = cam.fovH / width;
 	float hrayAngle;
 	float vrayAngle;
-	Ray* r = &rays[num];
-	for (int i = xoff; i < width; i+=4) {
+	Ray* r = &rays[ystart];
+	for (int i = xstart; i < width; i+=xadd) {
 		hrayAngle = (hStart + hIncreaseBy*i);
 		r->angle = hrayAngle;
 		r->dir.x = std::sin(hrayAngle); 
@@ -78,7 +77,7 @@ void World::UpdateScreenVertex(sf::VertexArray* v, short num, short cycle)
 
 		r->dir /= std::cos(cam.rotation - hrayAngle);		//Fix distortion on edges
 
-		for (int j = yoff; j < height; j+=4) {
+		for (int j = ystart; j < height; j+=yadd) {
 			vrayAngle = (vStart - j * vIncreaseBy);
 			r->yscale = std::cos(cam.hrotation + vrayAngle);
 			r->dir.y = (vOff + std::sin(vrayAngle));
@@ -161,7 +160,7 @@ void World::Shoot()
 {
 	Dynamic d;
 	Light l;
-	d.dir = sf::Vector3f(std::sin(cam.rotation), std::sin(cam.hrotation), std::cos(cam.rotation));
+	d.dir = sf::Vector3f(std::sin(cam.rotation), std::sin(cam.hrotation), std::cos(cam.rotation))*2.0f;
 	d.dir += cam.velocity * 2.0f;
 	d.dir *= 0.5f;
 	d.pos = cam.pos;
@@ -174,8 +173,8 @@ void World::Shoot()
 	d.unlit = true;
 	d.projectile = true;
 	d.textureID = 1;
-	d.dlightIndex = dlights.size();
-	dlights.push_back(l);
+	d.dlightIndex = lights.size();
+	lights.push_back(l);
 	dyn.insert(dyn.begin(),d);
 }
 
@@ -185,7 +184,7 @@ void World::UpdateDyn()
 		Dynamic* l = &dyn.at(i);
 		l->pos += l->dir * 0.16f;
 		if (l->dlightIndex >= 0) {
-			dlights.at(l->dlightIndex).pos = l->pos;
+			lights.at(l->dlightIndex).pos = l->pos;
 		}
 		sf::Vector3i posi(l->pos+l->dir);
 		if (l->projectile && blocks.contains((posi.x << 20) + (posi.y << 10) + posi.z))
@@ -211,15 +210,15 @@ void World::UpdateDyn()
 		sf::Vector3i posi(l->pos);
 		if (!l->unlit) {
 			l->r = 0; l->g = 0; l->b = 0;
-			for (unsigned int j = 0; j < dlights.size(); j++) {
-				if (dlights.at(j).intensity > 0) {
-					float dist = VLengthS(l->pos - dlights.at(j).pos);
+			for (unsigned int j = 0; j < alights.size(); j++) {
+				if (alights.at(j)->intensity > 0) {
+					float dist = VLengthS(l->pos - alights.at(j)->pos);
 					dist = std::max(dist, 1.0f);
-					float add = dlights.at(j).intensity / dist - dist * 0.002f;
+					float add = alights.at(j)->intensity / dist - dist * 0.002f;
 					if (add > 0) {
-						l->r += add * dlights.at(j).r;
-						l->g += add * dlights.at(j).g;
-						l->b += add * dlights.at(j).b;
+						l->r += add * alights.at(j)->r;
+						l->g += add * alights.at(j)->g;
+						l->b += add * alights.at(j)->b;
 					}
 				}
 			}
@@ -232,6 +231,13 @@ void World::UpdateDyn()
 			std::iter_swap(dyn.begin() + i, dyn.begin() + i - 1);
 		}
 	}
+	alights.clear();
+	for (unsigned int i = 0; i < lights.size(); i++) {
+		if (VLengthS(lights.at(i).pos - cam.pos) < 2000) {
+			alights.push_back(&lights.at(i));
+		}
+		lights.at(i).shadows = VLengthS(lights.at(i).pos - cam.pos) < 1000;
+	}
 }
 
 void World::RemoveDyn(unsigned int index)
@@ -239,7 +245,7 @@ void World::RemoveDyn(unsigned int index)
 	unsigned int lindex = dyn.at(index).dlightIndex;
 	dyn.erase(dyn.begin() + index);
 	if (lindex >= 0) {
-		dlights.erase(dlights.begin() + lindex);
+		lights.erase(lights.begin() + lindex);
 		for (unsigned int i = 0; i < dyn.size(); i++) {
 			if (dyn.at(i).dlightIndex > lindex)
 				dyn.at(i).dlightIndex--;
@@ -383,7 +389,7 @@ void World::Raycast(Ray* r)
 				c = colors[-block->textureID];
 			}
 			else {		//Get color from texture with coordinates
-				sf::Image* tex = &textures[block->textureID - 1];
+				sf::Image* tex = &textures[block->textureID];
 				sf::Vector2u tsize = tex->getSize();
 				if (colRay==1) {
 					c = tex->getPixel(tsize.x * (pos.z - posi.z), tsize.y * (pos.y - posi.y));
@@ -409,32 +415,31 @@ void World::Raycast(Ray* r)
 			float litg = litr;
 			float litb = litr;
 
-			for (unsigned int j = 0; j < dlights.size(); j++) {		//Lights
-				dist = VLengthS(pos - dlights.at(j).pos);
-				float add = dlights.at(j).intensity / dist - dist * 0.002f;
+			for (unsigned int j = 0; j < alights.size(); j++) {		//Lights
+				dist = VLengthS(pos - alights.at(j)->pos);
+				float add = (alights.at(j)->intensity / dist - dist * 0.002f);
 				if (add > 0) {
-					if (dlights.at(j).shadows) {
-						sf::Vector3f newDir = dlights.at(j).pos - pos;
-						dist = VLength(newDir);
-						newDir /= dist;
-						float angleMult = (newDir.x*dirxsign+newDir.y*dirysign+newDir.z*dirzsign)*0.7f+0.3f;
-						if (angleMult > 0) {
+					sf::Vector3f newDir = alights.at(j)->pos - pos;
+					add *= ((newDir.x * dirxsign + newDir.y * dirysign + newDir.z * dirzsign) * 0.7f + 0.3f);
+					if (add > 0) {
+						if (alights.at(j)->shadows) {
+							dist = VLength(newDir);
+							newDir /= dist;
 							r->maxDist = dist;
 							r->dir = newDir;
 							r->pos = pos;
 							if (LRaycast(r)) {
-								add *= angleMult;
-								litr += add * dlights.at(j).r;
-								litg += add * dlights.at(j).g;
-								litb += add * dlights.at(j).b;
+								litr += add * alights.at(j)->r;
+								litg += add * alights.at(j)->g;
+								litb += add * alights.at(j)->b;
 							}
 							r->dir = dir;
 						}
-					}
-					else {						
-						litr += add * dlights.at(j).r;
-						litg += add * dlights.at(j).g;
-						litb += add * dlights.at(j).b;
+						else {
+							litr += add * alights.at(j)->r;
+							litg += add * alights.at(j)->g;
+							litb += add * alights.at(j)->b;
+						}
 					}
 				}
 			}

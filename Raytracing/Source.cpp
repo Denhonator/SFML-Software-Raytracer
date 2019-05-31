@@ -7,15 +7,15 @@ World world;
 unsigned int lastIndex = 0;
 const unsigned int width = 640;		//Raycast + screen texture resolution
 const unsigned int height = 360;
-const unsigned int cyclesPerFrame = 2;
+int cyclesPerFrame = 1;
 bool run = true;
 short draw[4] = { 0,0,0,0 };
 
-void RenderThread(int num) {
+void RenderThread(short num) {
 	short cycle = 0;
 	while (run) {
 		if (draw[num]) {
-			world.UpdateScreenVertex(&screenVertex, num, cycle);
+			world.UpdateScreenVertex(&screenVertex, num, 4, cycle, 4);
 			draw[num] -= 1;
 			cycle = (cycle + 1) % 4;
 		}
@@ -49,6 +49,9 @@ void main() {
 	std::thread p2 = std::thread(&RenderThread, 1);
 	std::thread p3 = std::thread(&RenderThread, 2);
 	std::thread p4 = std::thread(&RenderThread, 3);
+
+	sf::Clock clock;
+	float frameTime;
 
 	while (window.isOpen())
 	{
@@ -103,20 +106,21 @@ void main() {
 			mousePos.x = width / 2; mousePos.y = height / 2;
 		}
 
-		/*if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
-			world.Turn(-1 * 0.3f);
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
-			world.Turn(1 * 0.3f);
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
-			world.LookUp(1 * 0.3f);
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
-			world.LookUp(-1 * 0.3f);*/
+		clock.restart();
 
 		world.UpdateWorld();
 
 		draw[0] = cyclesPerFrame; draw[1] = cyclesPerFrame; draw[2] = cyclesPerFrame; draw[3] = cyclesPerFrame;	//Draw in 4 threads here and only here
 		while (draw[0] || draw[1] || draw[2] || draw[3])
 			sf::sleep(sf::milliseconds(1));
+		frameTime = clock.getElapsedTime().asSeconds();
+		if (frameTime >= 0.017f) {
+			cyclesPerFrame = std::max(cyclesPerFrame - 1, 1);
+		}
+		if (frameTime <= 0.009f) {
+			cyclesPerFrame = std::min(cyclesPerFrame + 1, 4);
+		}
+		//std::cout << "Cycles per frame: " << cyclesPerFrame << "\n";
 
 		screenTexture.draw(screenVertex);
 		screenTexture.display();

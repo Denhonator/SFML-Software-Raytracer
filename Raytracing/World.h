@@ -57,7 +57,7 @@ struct Ray {
 
 class World {
 public:
-	void UpdateScreenVertex(sf::VertexArray* v, short num, short cycle);
+	void UpdateScreenVertex(sf::VertexArray* v, short ystart, short yadd, short xstart, short xadd);
 	void UpdateWorld();
 	void Move(float forw, float right);
 	void Turn(float angle);
@@ -90,7 +90,8 @@ private:
 	sf::Image* textures = new sf::Image[10];
 	sf::Image* dynTextures = new sf::Image[10];
 	std::vector<Dynamic> dyn;
-	std::vector<Light> dlights;
+	std::vector<Light> lights;
+	std::vector<Light*> alights;
 	Ray* rays = new Ray[4];
 	sf::Clock clock;
 };
