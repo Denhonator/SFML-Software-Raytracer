@@ -1,9 +1,10 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 #include <iostream>
-#define PI 3.1415926535f
-#define PI2 6.28318530718f
-#define PIH 1.57079632679f
+#include <unordered_map>
+constexpr auto PI = 3.1415926535f;
+constexpr auto PI2 = 6.28318530718f;
+constexpr auto PIH = 1.57079632679f;
 
 struct Camera {
 	sf::Vector3f pos = { 15.5f, 1.9f, 15.5f };
@@ -56,7 +57,6 @@ struct Ray {
 
 class World {
 public:
-	Block blocks[30][10][30];
 	void UpdateScreenVertex(sf::VertexArray* v, short num, short cycle);
 	void UpdateWorld();
 	void Move(float forw, float right);
@@ -70,6 +70,7 @@ public:
 	World();
 	~World();
 private:
+	std::unordered_map<int, Block> blocks;
 	void Move(float forw, float right, float up);
 	void UpdateDyn();
 	void RemoveDyn(unsigned int index);

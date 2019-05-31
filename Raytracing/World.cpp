@@ -15,17 +15,17 @@ World::World() {
 		dlights.push_back(l);
 		dyn.push_back(d);
 	}
-	for (unsigned int x = 0; x < 30; x++) {
-		for (unsigned int y = 0; y < 10; y++) {
-			for (unsigned int z = 0; z < 30; z++) {
+	for (int x = 0; x < 1000; x++) {
+		for (int y = 0; y < 10; y++) {
+			for (int z = 0; z < 30; z++) {
 				if (y == 0)
-					blocks[x][y][z].textureID = 2;
-				if ((x == 0 || x == 29 || z == 0 || z == 29) || (x % 9 == 0 && z % 5 == 0))
-					blocks[x][y][z].textureID = 1;
+					blocks.insert({ (x << 20) + (y << 10) + z, Block{ 2 } });
+				if ((x == 0 || x == 999 || z == 0 || z == 29) || (x % 9 == 0 && z % 5 == 0))
+					blocks.insert({ (x << 20) + (y << 10) + z, Block{ 1 } });
 				else if (y == 4 && x % 3 != 0 && z % 4 != 0)
-					blocks[x][y][z].textureID = 4;
+					blocks.insert({ (x << 20) + (y << 10) + z, Block{ 4 } });
 				if (y == 9)
-					blocks[x][y][z].textureID = 3;
+					blocks.insert({ (x << 20) + (y << 10) + z, Block{ 3 } });
 			}
 		}
 	}
@@ -133,14 +133,13 @@ void World::Move(float forw, float right, float up)
 		for (unsigned int y = 0; y < 2; y++) {
 			for (unsigned int z = 0; z < 2; z++) {
 				testPos.x = (int)(cam.pos.x + cam.velocity.x + xlimits[x]); testPos.y = (int)(cam.pos.y + ylimits[y]); testPos.z = (int)(cam.pos.z + zlimits[z]);
-				if (blocks[testPos.x][testPos.y][testPos.z].textureID != 0)
+				if (blocks.contains((testPos.x<<20)+(testPos.y<<10)+testPos.z))
 					cam.velocity.x = 0;
 				testPos.x = (int)(cam.pos.x + xlimits[x]); testPos.y = (int)(cam.pos.y + cam.velocity.y + ylimits[y]);
-				if (blocks[testPos.x][testPos.y][testPos.z].textureID != 0) {
+				if (blocks.contains((testPos.x << 20) + (testPos.y << 10) + testPos.z))
 					cam.velocity.y = 0;
-				}
 				testPos.y = (int)(cam.pos.y + ylimits[y]); testPos.z = (int)(cam.pos.z + cam.velocity.z + zlimits[z]);
-				if (blocks[testPos.x][testPos.y][testPos.z].textureID != 0)
+				if (blocks.contains((testPos.x << 20) + (testPos.y << 10) + testPos.z))
 					cam.velocity.z = 0;
 			}
 		}
@@ -189,9 +188,9 @@ void World::UpdateDyn()
 			dlights.at(l->dlightIndex).pos = l->pos;
 		}
 		sf::Vector3i posi(l->pos+l->dir);
-		if (l->projectile && blocks[posi.x][posi.y][posi.z].textureID != 0)
+		if (l->projectile && blocks.contains((posi.x << 20) + (posi.y << 10) + posi.z))
 			RemoveDyn(i);
-		else if (blocks[posi.x][posi.y][posi.z].textureID != 0 && (l->dir.x || l->dir.y || l->dir.z)) {
+		else if (blocks.contains((posi.x << 20) + (posi.y << 10) + posi.z) && (l->dir.x || l->dir.y || l->dir.z)) {
 			float distx = l->pos.x - 0.5f - posi.x; float disty = l->pos.y - 0.5f - posi.y; float distz = l->pos.z - 0.5f - posi.z;
 			if (distx<0.05f)
 				l->dir.x *= -1;
@@ -377,8 +376,8 @@ void World::Raycast(Ray* r)
 		posi.x = pos.x; posi.y = pos.y; posi.z = pos.z;
 		//if (pos.x < 0 || pos.y < 0 || pos.z < 0 || pos.x >= 30 || pos.y >= 10 || pos.z >= 30)	//Check out of bounds. Shouldn't be necessary if area is covered
 		//	break;
-		Block* block = &blocks[posi.x][posi.y][posi.z];
-		if (block->textureID != 0) {								//Hit a block
+		if (blocks.contains((posi.x<<20)+(posi.y<<10)+posi.z)) {								//Hit a block
+			Block* block = &blocks[(posi.x << 20) + (posi.y << 10) + posi.z];
 			sf::Color c;
 			if (block->textureID < 0) {
 				c = colors[-block->textureID];
@@ -465,8 +464,7 @@ bool World::LRaycast(Ray* r)
 	float dirzlen = std::abs(dir.z);
 
 	for (unsigned int i = 0; i < maxIter; i++) {
-		Block* block = &blocks[posi.x][posi.y][posi.z];
-		if (block->textureID != 0) {
+		if (blocks.contains((posi.x << 20) + (posi.y << 10) + posi.z)) {
 			return false;
 		}
 		float raySpeed = std::min({ (dirxadd + dirxsign * (pos.x - posi.x)) / dirxlen,		//Rayspeed matches what is needed to reach next block
