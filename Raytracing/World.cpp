@@ -2,31 +2,31 @@
 
 World::World() {
 	srand(time(NULL));
-	alights.reserve(sizeof(Light*) * 50);
-	for (unsigned int i = 0; i < 10; i++) {
-		Light l;
-		Dynamic d;
-		d.pos.x = 6 + (i % 2) * 11;
-		d.pos.z = 3 + 6 * (i%5);
-		d.pos.y = 1.9f + 5 * (i > 4 ? 1 : 0);
-		d.textureID = 1;
-		d.dlightIndex = lights.size();
-		d.unlit = true;
-		d.size.x = 0.01f; d.size.y = 0.03f;
-		lights.push_back(l);
-		dyn.push_back(d);
-	}
+	alights.reserve(sizeof(Light*) * 100);
 	for (int x = 0; x < 100; x++) {
 		for (int y = 0; y < 10; y++) {
 			for (int z = 0; z < 100; z++) {
 				if (y == 0)
 					blocks.insert({ (x << 20) + (y << 10) + z, Block{ 1 } });
-				if ((x == 0 || x == 99 || z == 0 || z == 99) || (x % 9 == 0 && z % 5 == 0))
+				else if ((x == 0 || x == 99 || z == 0 || z == 99) || (x % 9 == 0 && z % 5 == 0))
 					blocks.insert({ (x << 20) + (y << 10) + z, Block{ 0 } });
 				else if (y == 4 && x % 3 != 0 && z % 4 != 0)
 					blocks.insert({ (x << 20) + (y << 10) + z, Block{ 3 } });
-				if (y == 9)
+				else if (y == 9)
 					blocks.insert({ (x << 20) + (y << 10) + z, Block{ 2 } });
+				else if ((y == 2 || y == 6) && (x%11==0 && z%11==0)) {
+					Light l;
+					Dynamic d;
+					d.pos.x = x+0.5f;
+					d.pos.z = z+0.5f;
+					d.pos.y = y+0.5f;
+					d.textureID = 1;
+					d.dlightIndex = lights.size();
+					d.unlit = true;
+					d.size.x = 0.01f; d.size.y = 0.03f;
+					lights.push_back(l);
+					dyn.push_back(d);
+				}
 			}
 		}
 	}
@@ -59,7 +59,7 @@ World::World() {
 World::~World() {
 }
 
-void World::UpdateScreenVertex(sf::VertexArray* v, short ystart, short yadd, short xstart, short xadd)
+void World::UpdateImage(sf::Image* v, short ystart, short yadd, short xstart, short xadd)
 {
 	float vStart = cam.fovV / 2;
 	float vIncreaseBy = cam.fovV / height;
@@ -74,7 +74,6 @@ void World::UpdateScreenVertex(sf::VertexArray* v, short ystart, short yadd, sho
 		r->angle = hrayAngle;
 		r->dir.x = std::sin(hrayAngle); 
 		r->dir.z = std::cos(hrayAngle);
-
 		r->dir /= std::cos(cam.rotation - hrayAngle);		//Fix distortion on edges
 
 		for (int j = ystart; j < height; j+=yadd) {
@@ -82,7 +81,7 @@ void World::UpdateScreenVertex(sf::VertexArray* v, short ystart, short yadd, sho
 			r->yscale = std::cos(cam.hrotation + vrayAngle);
 			r->dir.y = (vOff + std::sin(vrayAngle));
 			Raycast(r);
-			(*v)[i + width * j].color = r->c;
+			v->setPixel(i,j,r->c);
 		}
 	}
 }
@@ -214,7 +213,7 @@ void World::UpdateDyn()
 				if (alights.at(j)->intensity > 0) {
 					float dist = VLengthS(l->pos - alights.at(j)->pos);
 					dist = std::max(dist, 1.0f);
-					float add = alights.at(j)->intensity / dist - dist * 0.002f;
+					float add = alights.at(j)->intensity / dist - dist * 0.001f;
 					if (add > 0) {
 						l->r += add * alights.at(j)->r;
 						l->g += add * alights.at(j)->g;

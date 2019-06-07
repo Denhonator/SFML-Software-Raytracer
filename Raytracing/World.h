@@ -57,7 +57,7 @@ struct Ray {
 
 class World {
 public:
-	void UpdateScreenVertex(sf::VertexArray* v, short ystart, short yadd, short xstart, short xadd);
+	void UpdateImage(sf::Image* v, short ystart, short yadd, short xstart, short xadd);
 	void UpdateWorld();
 	void Move(float forw, float right);
 	void Turn(float angle);

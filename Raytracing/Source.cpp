@@ -1,13 +1,14 @@
 #include "World.h"
 #include <thread>
 
-sf::VertexArray screenVertex;
-sf::RenderTexture screenTexture;
+sf::Texture screenTexture;
+sf::Image gameImage;
 World world;
 unsigned int lastIndex = 0;
-const unsigned int width = 640;		//Raycast + screen texture resolution
-const unsigned int height = 360;
+unsigned int width = 640;		//Raycast + screen texture resolution
+unsigned int height = 360;
 int cyclesPerFrame = 1;
+int fullCycles = 16;
 bool run = true;
 short draw[4] = { 0,0,0,0 };
 
@@ -15,9 +16,9 @@ void RenderThread(short num) {
 	short cycle = 0;
 	while (run) {
 		if (draw[num]) {
-			world.UpdateScreenVertex(&screenVertex, num, 4, cycle, 4);
+			world.UpdateImage(&gameImage, num, 4, cycle, fullCycles);
 			draw[num] -= 1;
-			cycle = (cycle + 1) % 4;
+			cycle = (cycle + 3) % fullCycles;
 		}
 		else
 			sf::sleep(sf::Time(sf::milliseconds(1)));
@@ -29,21 +30,15 @@ void main() {
 	bool lockMouse = true;
 
 	sf::Sprite screenSprite;
-	screenTexture.create(width, height, false);
+	screenTexture.create(1920, 1080);
 	sf::RenderWindow window(sf::VideoMode(1920, 1080), "Rays");
 	window.setVerticalSyncEnabled(true);
 	world.width = width;
 	world.height = height;
 
-	screenSprite.setTexture(screenTexture.getTexture());
+	screenSprite.setTexture(screenTexture);
 	screenSprite.setScale(window.getSize().x / (float)width, window.getSize().y / (float)height);
-	screenVertex.resize(width * height);
-	for (unsigned int i = 0; i < width; i++) {
-		for (unsigned int j = 0; j < height; j++) {
-			unsigned int index = i + width * j;
-			screenVertex[index].position = sf::Vector2f(i, j+1);
-		}
-	}
+	gameImage.create(1920,1080);
 
 	std::thread p1 = std::thread(&RenderThread, 0);
 	std::thread p2 = std::thread(&RenderThread, 1);
@@ -77,6 +72,20 @@ void main() {
 					world.cam.speedM = sign * 0.05f + 0.05f;
 				else if (event.key.code == sf::Keyboard::Escape)
 					lockMouse = false;
+				else if (event.key.code == sf::Keyboard::PageDown && sign && height > 140) {
+					width -= 16;
+					height -= 9;
+					world.width -= 16;
+					world.height -= 9;
+					screenSprite.setScale(window.getSize().x / (float)width, window.getSize().y / (float)height);
+				}
+				else if (event.key.code == sf::Keyboard::PageUp && sign && height+9<=window.getSize().y) {
+					width += 16;
+					height += 9;
+					world.width += 16;
+					world.height += 9;
+					screenSprite.setScale(window.getSize().x / (float)width, window.getSize().y / (float)height);
+				}
 			}
 
 			else if (event.type == sf::Event::MouseButtonPressed) {
@@ -114,19 +123,18 @@ void main() {
 		while (draw[0] || draw[1] || draw[2] || draw[3])
 			sf::sleep(sf::milliseconds(1));
 		frameTime = clock.getElapsedTime().asSeconds();
-		if (frameTime >= 0.017f) {
-			cyclesPerFrame = std::max(cyclesPerFrame - 1, 1);
-		}
-		if (frameTime <= 0.009f) {
-			cyclesPerFrame = std::min(cyclesPerFrame + 1, 4);
-		}
-		//std::cout << "Cycles per frame: " << cyclesPerFrame << "\n";
 
-		screenTexture.draw(screenVertex);
-		screenTexture.display();
-		//window.clear();
+		screenTexture.loadFromImage(gameImage);
 		window.draw(screenSprite);
 		window.display();
+
+		if (frameTime >= 0.021f) {		//Too slow
+			cyclesPerFrame = std::max(cyclesPerFrame - 1, 1);
+		}
+		if (frameTime <= 0.01f) {		//Pretty fast
+			cyclesPerFrame = std::min(cyclesPerFrame + 1, fullCycles);
+		}
+		std::cout << width << "; " << height << "\n" << cyclesPerFrame << "\n";
 	}
 	run = false;
 	p1.join();
