@@ -232,10 +232,11 @@ void World::UpdateDyn()
 	}
 	alights.clear();
 	for (unsigned int i = 0; i < lights.size(); i++) {
-		if (VLengthS(lights.at(i).pos - cam.pos) < 2000) {
+		float alightDistance = viewDistance * viewDistance * 1.5f;
+		float angle = std::abs(VAngleXZ(VNormalizeXZ(lights.at(i).pos - cam.pos), (sf::Vector3f(std::sin(cam.rotation), 0, std::cos(cam.rotation)))));	//Deactivate lights behind you more easily
+		if (VLengthS(lights.at(i).pos - cam.pos) < alightDistance - angle / PI * alightDistance * 0.7f) {
 			alights.push_back(&lights.at(i));
 		}
-		lights.at(i).shadows = VLengthS(lights.at(i).pos - cam.pos) < 1000;
 	}
 }
 
@@ -317,12 +318,14 @@ void World::Raycast(Ray* r)
 	unsigned short DI = 0;
 	float raySpeed = 0;
 	unsigned short colRay = 0;
+	unsigned int i = 0;
+	unsigned int maxiter = viewDistance*1.5f;
 
-	for (unsigned int i = 0; i < maxIter; i++) {
+	while (dist<viewDistance && i<maxiter) {
 		float xray = (dirxadd + dirxsign * (pos.x - posi.x)) / dirxlen;
 		float yray = (diryadd + dirysign * (pos.y - posi.y)) / dirylen;
 		float zray = (dirzadd + dirzsign * (pos.z - posi.z)) / dirzlen;
-		//float raySpeed = std::min({ xray, yray,	zray });			//Rayspeed matches what is needed to reach next block
+		//Rayspeed matches what is needed to reach next block
 		if (xray <= yray && xray <= zray) {
 			raySpeed = xray;
 			tryPos.x += dir.x * (raySpeed+0.002f);
@@ -345,9 +348,7 @@ void World::Raycast(Ray* r)
 			colRay = 3;
 		}
 
-		//raySpeed += 0.002f;											//Add a little on top so it doesn't fall short
 		float tryDist = dist + raySpeed;
-		//tryPos += dir * raySpeed;
 
 		while (DI<dyn.size() && tryDist >= dyn.at(DI).distToCamera) {			//Go through all dynamic objects that are there before hitting the next block
 			Dynamic* d = &dyn.at(DI);
@@ -416,12 +417,12 @@ void World::Raycast(Ray* r)
 
 			for (unsigned int j = 0; j < alights.size(); j++) {		//Lights
 				dist = VLengthS(pos - alights.at(j)->pos);
-				float add = (alights.at(j)->intensity / dist - dist * 0.002f);
+				float add = (alights.at(j)->intensity / dist - dist * 0.002f);		//Distance based value
 				if (add > 0) {
 					sf::Vector3f newDir = alights.at(j)->pos - pos;
-					add *= ((newDir.x * dirxsign + newDir.y * dirysign + newDir.z * dirzsign) * 0.7f + 0.3f);
+					add *= ((newDir.x * dirxsign + newDir.y * dirysign + newDir.z * dirzsign) * 0.7f + 0.3f);		//Angle multiplication
 					if (add > 0) {
-						if (alights.at(j)->shadows) {
+						if (alights.at(j)->shadows && tryDist < shadowDistance) {
 							dist = VLength(newDir);
 							newDir /= dist;
 							r->maxDist = dist;
@@ -446,6 +447,7 @@ void World::Raycast(Ray* r)
 			r->c = c;
 			return;
 		}
+		i += 1;
 	}
 	r->c = sf::Color::Black;
 }
@@ -466,8 +468,11 @@ bool World::LRaycast(Ray* r)
 	float dirxlen = std::abs(dir.x);
 	float dirylen = std::abs(dir.y);
 	float dirzlen = std::abs(dir.z);
+	float raySpeed = 0;
+	unsigned int i = 0;
+	unsigned int maxIter = std::max(maxDist*2,20.0f);
 
-	for (unsigned int i = 0; i < maxIter; i++) {
+	for (unsigned int i = 0; i < maxIter && dist < maxDist; i++) {
 		if (blocks.contains((posi.x << 20) + (posi.y << 10) + posi.z)) {
 			return false;
 		}
@@ -476,13 +481,11 @@ bool World::LRaycast(Ray* r)
 									(dirzadd + dirzsign * (pos.z - posi.z)) / dirzlen });
 		raySpeed += 0.002f;											//Add a little on top so it doesn't fall short
 		dist += raySpeed;
-		if (dist >= maxDist)
-			return true;
-		pos += dir*raySpeed;
+		pos += dir * raySpeed;
 		posi.x = pos.x; posi.y = pos.y; posi.z = pos.z;
-		
+
 		//if (pos.x < 0 || pos.y < 0 || pos.z < 0 || pos.x >= 30 || pos.y >= 10 || pos.z >= 30)	//Check out of bounds. Shouldn't be necessary if area is covered
 		//	break;
 	}
-	return false;
+	return dist >= maxDist;
 }

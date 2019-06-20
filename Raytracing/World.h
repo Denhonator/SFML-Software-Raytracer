@@ -67,6 +67,8 @@ public:
 	int width = 320;
 	int height = 180;
 	Camera cam;
+	float shadowDistance = 16;
+	float viewDistance = 24;
 	World();
 	~World();
 private:
@@ -85,7 +87,6 @@ private:
 	float VLengthS(sf::Vector3f v);
 	void Raycast(Ray* r);
 	bool LRaycast(Ray* r);
-	float maxIter = 45;
 	sf::Color* colors = new sf::Color[10];
 	sf::Image* textures = new sf::Image[10];
 	sf::Image* dynTextures = new sf::Image[10];
