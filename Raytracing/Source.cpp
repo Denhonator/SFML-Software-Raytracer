@@ -8,15 +8,16 @@ unsigned int lastIndex = 0;
 unsigned int width = 640;		//Raycast + screen texture resolution
 unsigned int height = 360;
 int cyclesPerFrame = 1;
-int fullCycles = 16;
+short fullCycles = 4;
+const int threadCount = 16;
 bool run = true;
-short draw[4] = { 0,0,0,0 };
+short draw[threadCount];
 
 void RenderThread(short num) {
 	short cycle = 0;
 	while (run) {
 		if (draw[num]) {
-			world.UpdateImage(&gameImage, num, 4, cycle, fullCycles);
+			world.UpdateImage(&gameImage, num, threadCount, cycle, fullCycles);
 			draw[num] -= 1;
 			cycle = (cycle + 3) % fullCycles;
 		}
@@ -40,21 +41,23 @@ void main() {
 	screenSprite.setScale(window.getSize().x / (float)width, window.getSize().y / (float)height);
 	gameImage.create(1920,1080);
 
-	std::thread p1 = std::thread(&RenderThread, 0);
-	std::thread p2 = std::thread(&RenderThread, 1);
-	std::thread p3 = std::thread(&RenderThread, 2);
-	std::thread p4 = std::thread(&RenderThread, 3);
+	std::thread threads[threadCount];
+
+	for (unsigned int i = 0; i < threadCount; i++) {
+		draw[i] = 0;
+		threads[i] = std::thread(&RenderThread, i);
+	}
 
 	sf::Clock clock;
 	float frameTime;
 
-	while (window.isOpen())
+	while (run)
 	{
 		sf::Event event;
 		while (window.pollEvent(event))
 		{
 			if (event.type == sf::Event::Closed)
-				window.close();
+				run = false;
 
 			int sign = event.type == sf::Event::KeyPressed ? 1 : event.type == sf::Event::KeyReleased ? 0 : -1;
 			if (sign>=0) {
@@ -100,6 +103,9 @@ void main() {
 			}
 		}
 
+		if (!run)
+			break;
+
 		if (event.type == sf::Event::MouseButtonPressed) {
 			lockMouse = true;
 		}
@@ -119,9 +125,15 @@ void main() {
 
 		world.UpdateWorld();
 
-		draw[0] = cyclesPerFrame; draw[1] = cyclesPerFrame; draw[2] = cyclesPerFrame; draw[3] = cyclesPerFrame;	//Draw in 4 threads here and only here
-		while (draw[0] || draw[1] || draw[2] || draw[3])
-			sf::sleep(sf::milliseconds(1));
+		for (unsigned int i = 0; i < threadCount; i++) {
+			draw[i] = cyclesPerFrame;
+		}
+		for (unsigned int i = 0; i < threadCount; i+=0) {
+			if (!draw[i])
+				i += 1;
+			else
+				sf::sleep(sf::milliseconds(1));
+		}
 		frameTime = clock.getElapsedTime().asSeconds();
 
 		screenTexture.loadFromImage(gameImage);
@@ -132,13 +144,15 @@ void main() {
 			cyclesPerFrame = std::max(cyclesPerFrame - 1, 1);
 		}
 		if (frameTime <= 0.01f) {		//Pretty fast
-			cyclesPerFrame = std::min(cyclesPerFrame + 1, fullCycles);
+			cyclesPerFrame = std::min(cyclesPerFrame + 1, (int)fullCycles);
 		}
 		std::cout << width << "; " << height << "\n" << cyclesPerFrame << "\n";
 	}
 	run = false;
-	p1.join();
-	p2.join();
-	p3.join();
-	p4.join();
+	for (unsigned int i = 0; i < threadCount; i++) {
+		draw[i] = 0;
+	}
+	for (unsigned int i = 0; i < threadCount; i++) {
+		threads[i].join();
+	}
 }
