@@ -1,15 +1,16 @@
-#include "World.h"
+//#include "World.h"
+#include "SphereWorld.h"
 #include <thread>
 
 sf::Texture screenTexture;
 sf::Image gameImage;
-World world;
+SphereWorld world;
 unsigned int lastIndex = 0;
 unsigned int width = 640;		//Raycast + screen texture resolution
 unsigned int height = 360;
 int cyclesPerFrame = 1;
 short fullCycles = 4;
-const int threadCount = 16;
+const int threadCount = 8;
 bool run = true;
 short draw[threadCount];
 
@@ -146,7 +147,7 @@ void main() {
 		if (frameTime <= 0.01f) {		//Pretty fast
 			cyclesPerFrame = std::min(cyclesPerFrame + 1, (int)fullCycles);
 		}
-		std::cout << width << "; " << height << "\n" << cyclesPerFrame << "\n";
+		//std::cout << width << "; " << height << "\n" << cyclesPerFrame << "\n";
 	}
 	run = false;
 	for (unsigned int i = 0; i < threadCount; i++) {

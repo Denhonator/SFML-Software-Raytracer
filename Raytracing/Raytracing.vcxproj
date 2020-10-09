@@ -143,8 +143,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Source.cpp" />
+    <ClCompile Include="SphereWorld.cpp" />
     <ClCompile Include="World.cpp" />
     <ClCompile Include="World.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="SphereWorld.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
