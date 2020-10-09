@@ -64,7 +64,7 @@ private:
 	float VLengthS(sf::Vector3f v);
 	void Raycast(Ray* r);
 	sf::Image* textures = new sf::Image[10];
-	Ray* rays = new Ray[4];
+	Ray* rays = new Ray[16];
 	sf::Clock clock;
 };
 

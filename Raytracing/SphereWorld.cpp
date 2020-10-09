@@ -21,7 +21,23 @@ sf::Vector3f QToDir(sf::Vector3f u, float s, sf::Vector3f v)
 }
 
 sf::Vector3f VRotate(sf::Vector3f v, sf::Vector3f k, float cos_theta, float sin_theta) {
-	return (v * cos_theta) + (cross(k, v) * sin_theta) + (k * dot(k, v)) * (1 - cos_theta);
+	return (v * cos_theta) + (cross(k, v) * sin_theta) + (k * (float)dot(k, v)) * (1 - cos_theta);
+}
+
+sf::Vector3f VRotateX(sf::Vector3f v, float amount) {
+	float s = std::sin(amount);
+	float c = std::cos(amount);
+	return sf::Vector3f(v.x, v.y * c - v.z * s, v.y * s + v.z * c);
+}
+sf::Vector3f VRotateY(sf::Vector3f v, float amount) {
+	float s = std::sin(amount);
+	float c = std::cos(amount);
+	return sf::Vector3f(v.x * c + v.z * s, v.y, -v.x * s + v.z * c);
+}
+sf::Vector3f VRotateZ(sf::Vector3f v, float amount) {
+	float s = std::sin(amount);
+	float c = std::cos(amount);
+	return sf::Vector3f(v.x * c - v.y * s, v.x * s + v.y * c, v.z);
 }
 
 SphereWorld::SphereWorld()
@@ -37,7 +53,8 @@ SphereWorld::SphereWorld()
 	cam.fovH *= PI / 180.0f;
 	cam.fovV *= PI / 180.0f;
 
-	std::cout << VRotate(sf::Vector3f(0, 0, 1), sf::Vector3f(0, 1, 0), std::cos(PI), std::sin(PI)).z;
+	//sf::Vector3f test = QToDir(sf::Vector3f(std::sin(PI / 8), 0, 0), std::cos(PI / 8), sf::Vector3f(0.707f,0,0.707f));
+	//std::cout << test.x << ", " << test.y << ", " << test.z << std::endl;
 }
 
 SphereWorld::~SphereWorld()
@@ -46,10 +63,10 @@ SphereWorld::~SphereWorld()
 
 void SphereWorld::UpdateImage(sf::Image* v, short ystart, short yadd, short xstart, short xadd)
 {
-	float vStart = cam.fovV / 2;
+	float vStart = -cam.fovV / 2;
 	float vIncreaseBy = cam.fovV / height;
 	float vOff = std::sin(cam.hrotation);
-	float hStart = cam.rotation - cam.fovH / 2;
+	float hStart =  - cam.fovH / 2;
 	float hIncreaseBy = cam.fovH / width;
 	float hrayAngle;
 	float vrayAngle;
@@ -73,18 +90,23 @@ void SphereWorld::UpdateImage(sf::Image* v, short ystart, short yadd, short xsta
 			//return Ray(start, start.Normalized());
 			//r->dir = start - cam.pos;
 
-			vrayAngle = (vStart - j * vIncreaseBy);
+			vrayAngle = (vStart + j * vIncreaseBy);
 			/*r->yscale = std::cos(cam.hrotation + vrayAngle);
 			r->dir.y = (std::sin(vrayAngle+cam.hrotation));*/
-			vrayAngle += cam.hrotation;
+			//vrayAngle += cam.hrotation;
 
-			r->dir = sf::Vector3f(std::sin(hrayAngle), 0, std::cos(hrayAngle));
+			sf::Vector3f forward = VRotateY(sf::Vector3f(0,0,1), cam.rotation);
+			sf::Vector3f right = VRotateY(sf::Vector3f(1,0,0), cam.rotation);
+			sf::Vector3f up = VRotateX(sf::Vector3f(0,1,0), cam.hrotation);
+			forward = VRotateX(forward, cam.hrotation);
+			right = VRotateX(right, cam.hrotation);
+			r->dir = forward + right * hrayAngle + up * vrayAngle;
 			//r->dir = QToDir(sf::Vector3f(0, std::sin(hrayAngle / 2), 0), std::cos(hrayAngle / 2), sf::Vector3f(0,0,1));
 			//r->dir = VRotate(sf::Vector3f(0, 0, 1), sf::Vector3f(0, 1, 0), std::cos(hrayAngle), std::sin(hrayAngle));
 			//r->dir = VRotate(r->dir, sf::Vector3f(1, 0, 0), std::cos(vrayAngle), std::sin(vrayAngle));
 			//if (i == width / 2 && j == height / 2)
 			//	std::cout << r->dir.x << ", " << r->dir.z << std::endl;
-			r->dir = QToDir(sf::Vector3f(std::sin(vrayAngle / 2), 0, 0), std::cos(vrayAngle / 2), r->dir);
+			//r->dir = QToDir(sf::Vector3f(std::sin(vrayAngle / 2), 0, 0), std::cos(vrayAngle / 2), r->dir);
 
 			//r->dir = sf::Vector3f(std::sin(hrayAngle), 0, std::cos(hrayAngle));
 			//r->dir = QToDir(sf::Vector3f(0, std::sin(-cam.rotation / 2), 0), std::cos(-cam.rotation / 2), r->dir);
