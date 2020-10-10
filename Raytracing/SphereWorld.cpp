@@ -95,11 +95,12 @@ void SphereWorld::UpdateImage(sf::Image* v, short ystart, short yadd, short xsta
 			r->dir.y = (std::sin(vrayAngle+cam.hrotation));*/
 			//vrayAngle += cam.hrotation;
 
-			sf::Vector3f forward = VRotateY(sf::Vector3f(0,0,1), cam.rotation);
-			sf::Vector3f right = VRotateY(sf::Vector3f(1,0,0), cam.rotation);
 			sf::Vector3f up = VRotateX(sf::Vector3f(0,1,0), cam.hrotation);
-			forward = VRotateX(forward, cam.hrotation);
-			right = VRotateX(right, cam.hrotation);
+			sf::Vector3f forward = VRotateX(sf::Vector3f(0,0,1), cam.hrotation);
+			sf::Vector3f right = VRotateY(sf::Vector3f(1,0,0), cam.rotation);
+			forward = VRotateY(forward, cam.rotation);
+			up = VRotateY(up, cam.rotation);
+
 			r->dir = forward + right * hrayAngle + up * vrayAngle;
 			//r->dir = QToDir(sf::Vector3f(0, std::sin(hrayAngle / 2), 0), std::cos(hrayAngle / 2), sf::Vector3f(0,0,1));
 			//r->dir = VRotate(sf::Vector3f(0, 0, 1), sf::Vector3f(0, 1, 0), std::cos(hrayAngle), std::sin(hrayAngle));
