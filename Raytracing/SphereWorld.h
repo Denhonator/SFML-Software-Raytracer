@@ -15,6 +15,7 @@ struct Camera {
 	float fovV = 47;
 	float airtime = 0.2f;
 	float speedM = 0.05f;
+	bool onGround = false;
 	sf::Vector3f speed;
 	sf::Vector3f velocity;
 };

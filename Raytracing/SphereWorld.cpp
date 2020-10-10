@@ -55,8 +55,8 @@ SphereWorld::SphereWorld()
 
 	textures[0].loadFromFile("Floor.png");
 
-	cam.fovH *= PI / 180.0f;
-	cam.fovV *= PI / 180.0f;
+	cam.fovH *= PI / 90.0f;
+	cam.fovV *= PI / 90.0f;
 
 	//sf::Vector3f test = QToDir(sf::Vector3f(std::sin(PI / 8), 0, 0), std::cos(PI / 8), sf::Vector3f(0.707f,0,0.707f));
 	//std::cout << test.x << ", " << test.y << ", " << test.z << std::endl;
@@ -163,7 +163,7 @@ void SphereWorld::LookUp(float angle)
 
 void SphereWorld::Move(float forw, float right, float up)
 {
-	cam.velocity.y -= 0.002f;
+	cam.velocity.y -= 0.003f;
 	float xlimits[2] = { -0.1f,0.1f }; float ylimits[2] = { -0.8f,0.3f }; float zlimits[2] = { -0.1f,0.1f };
 	sf::Vector3f testPos;
 	for (unsigned int x = 0; x < 2; x++) {
@@ -198,13 +198,17 @@ void SphereWorld::Move(float forw, float right, float up)
 			}
 		}
 	}
+	cam.onGround = false;
 	for (int i = 0; i < spheres.size(); i++) {
 		rays[0].dir = sf::Vector3f(0, -1, 0);
 		rays[1].dir = sf::Vector3f(0, 1, 0);
 		Raycast(rays);
 		Raycast(&rays[1]);
-		if (cam.velocity.y <= 0 && (cam.pos.y-rays[0].pos.y)<=1.0f)
+		if (cam.velocity.y <= 0 && (cam.pos.y - rays[0].pos.y) <= 1.0f) {
 			cam.pos.y = 1.0f + rays[0].pos.y;
+		}
+		if ((cam.pos.y - rays[0].pos.y) <= 1.4f)
+			cam.onGround = true;
 	}
 
 	if (cam.velocity.x || cam.velocity.y || cam.velocity.z)
@@ -217,7 +221,8 @@ void SphereWorld::Move(float forw, float right, float up)
 
 void SphereWorld::Jump(float speed)
 {
-	cam.velocity.y = speed;
+	if(cam.onGround)
+		cam.velocity.y = speed * 2;
 }
 
 void SphereWorld::Shoot()
@@ -290,9 +295,9 @@ void SphereWorld::Raycast(Ray* r)
 	}
 	float xcoord = VAngleXZ(r->pos, spheres.at(drawSphere).pos)/PI2 + 1.0f;
 	float ycoord = (std::asinf(VNormalize(r->pos - spheres.at(drawSphere).pos).y) / PI + 0.5f);
-	float brightness = 1.0f / std::max(VLength(r->pos - cam.pos), 1.0f);
+	float brightness = 3.0f / std::max(VLength(r->pos - cam.pos), 3.0f);
 	sf::Vector2u texsize = textures[spheres.at(drawSphere).textureID].getSize();
-	sf::Color c = textures[spheres.at(drawSphere).textureID].getPixel(std::fmodf(xcoord*10, 1.0f) * texsize.x, std::fmodf(ycoord*5, 1.0f) * texsize.y);
+	sf::Color c = textures[spheres.at(drawSphere).textureID].getPixel(std::fmodf(xcoord*4*spheres.at(drawSphere).radius, 1.0f) * texsize.x, std::fmodf(ycoord*2*spheres.at(drawSphere).radius, 1.0f) * texsize.y);
 	c.r *= brightness;
 	c.g *= brightness;
 	c.b *= brightness;
