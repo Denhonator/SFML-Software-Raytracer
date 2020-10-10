@@ -23,7 +23,6 @@ struct Sphere {
 	sf::Vector3f pos = { 0,0,0 };
 	float radius = 5.0f;
 	short textureID = 0;
-	sf::Color c = sf::Color::White;
 };
 
 struct Ray {

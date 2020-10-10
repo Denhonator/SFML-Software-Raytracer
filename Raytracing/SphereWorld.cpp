@@ -42,11 +42,16 @@ sf::Vector3f VRotateZ(sf::Vector3f v, float amount) {
 
 SphereWorld::SphereWorld()
 {
-	spheres.push_back(Sphere{ sf::Vector3f(0, 0, 0), 5, 0, sf::Color::White });
-	spheres.push_back(Sphere{ sf::Vector3f(9, 0, 0), 5, 0, sf::Color::Red });
-	spheres.push_back(Sphere{ sf::Vector3f(-9, 0, 0), 5, 0, sf::Color::Green });
-	spheres.push_back(Sphere{ sf::Vector3f(0, 0, 9), 5, 0, sf::Color::Blue });
-	//spheres.push_back(Sphere{ sf::Vector3f(0, 0, -3), 5, sf::Color::Cyan });
+	srand(time(NULL));
+	spheres.push_back(Sphere{ sf::Vector3f(0, 0, 0), 4, 0});
+
+	for (int i = 0; i < 30; i++) {
+		spheres.push_back(Sphere{ sf::Vector3f(1.0f*(rand()%30-15), 1.0f * (rand() % 30 - 15), 1.0f * (rand() % 30 - 15)), 1.0f * (rand() % 5 + 3), 0 });
+	}
+
+	/*spheres.push_back(Sphere{ sf::Vector3f(5, 0, 0), 4, 0});
+	spheres.push_back(Sphere{ sf::Vector3f(-5, 0, 0), 4, 0});
+	spheres.push_back(Sphere{ sf::Vector3f(0, 0, 5), 4, 0});*/
 
 	textures[0].loadFromFile("Floor.png");
 
@@ -95,8 +100,8 @@ void SphereWorld::UpdateImage(sf::Image* v, short ystart, short yadd, short xsta
 			r->dir.y = (std::sin(vrayAngle+cam.hrotation));*/
 			//vrayAngle += cam.hrotation;
 
-			sf::Vector3f up = VRotateX(sf::Vector3f(0,1,0), cam.hrotation);
-			sf::Vector3f forward = VRotateX(sf::Vector3f(0,0,1), cam.hrotation);
+			sf::Vector3f up = VRotateX(sf::Vector3f(0,-1,0), -cam.hrotation);
+			sf::Vector3f forward = VRotateX(sf::Vector3f(0,0,1), -cam.hrotation);
 			sf::Vector3f right = VRotateY(sf::Vector3f(1,0,0), cam.rotation);
 			forward = VRotateY(forward, cam.rotation);
 			up = VRotateY(up, cam.rotation);
@@ -158,24 +163,50 @@ void SphereWorld::LookUp(float angle)
 
 void SphereWorld::Move(float forw, float right, float up)
 {
-	//cam.velocity.y -= 0.002f;
-	float xlimits[2] = { -0.1f,0.1f }; float ylimits[2] = { -0.8f,0.1f }; float zlimits[2] = { -0.1f,0.1f };
-	sf::Vector3i testPos;
-	/*for (unsigned int x = 0; x < 2; x++) {
+	cam.velocity.y -= 0.002f;
+	float xlimits[2] = { -0.1f,0.1f }; float ylimits[2] = { -0.8f,0.3f }; float zlimits[2] = { -0.1f,0.1f };
+	sf::Vector3f testPos;
+	for (unsigned int x = 0; x < 2; x++) {
 		for (unsigned int y = 0; y < 2; y++) {
 			for (unsigned int z = 0; z < 2; z++) {
-				testPos.x = (int)(cam.pos.x + cam.velocity.x + xlimits[x]); testPos.y = (int)(cam.pos.y + ylimits[y]); testPos.z = (int)(cam.pos.z + zlimits[z]);
-				if (blocks.contains((testPos.x << 20) + (testPos.y << 10) + testPos.z))
+				testPos.x = (cam.pos.x + cam.velocity.x + xlimits[x]); testPos.y = (cam.pos.y + ylimits[y]); testPos.z = (cam.pos.z + zlimits[z]);
+				bool isInside = false;
+				for (int i = 0; i < spheres.size() && !isInside; i++) {
+					if (VLength(testPos - spheres.at(i).pos) < spheres.at(i).radius)
+						isInside = true;
+				}
+				if(!isInside)
 					cam.velocity.x = 0;
-				testPos.x = (int)(cam.pos.x + xlimits[x]); testPos.y = (int)(cam.pos.y + cam.velocity.y + ylimits[y]);
-				if (blocks.contains((testPos.x << 20) + (testPos.y << 10) + testPos.z))
+
+				testPos.x = (cam.pos.x + xlimits[x]); testPos.y = (cam.pos.y + cam.velocity.y + ylimits[y] - 0.2f);
+				isInside = false;
+				for (int i = 0; i < spheres.size() && !isInside; i++) {
+					if (VLength(testPos - spheres.at(i).pos) < spheres.at(i).radius)
+						isInside = true;
+				}
+				if (!isInside)
 					cam.velocity.y = 0;
-				testPos.y = (int)(cam.pos.y + ylimits[y]); testPos.z = (int)(cam.pos.z + cam.velocity.z + zlimits[z]);
-				if (blocks.contains((testPos.x << 20) + (testPos.y << 10) + testPos.z))
+
+				testPos.y = (cam.pos.y + ylimits[y]); testPos.z = (cam.pos.z + cam.velocity.z + zlimits[z]);
+				isInside = false;
+				for (int i = 0; i < spheres.size() && !isInside; i++) {
+					if (VLength(testPos - spheres.at(i).pos) < spheres.at(i).radius)
+						isInside = true;
+				}
+				if (!isInside)
 					cam.velocity.z = 0;
 			}
 		}
-	}*/
+	}
+	for (int i = 0; i < spheres.size(); i++) {
+		rays[0].dir = sf::Vector3f(0, -1, 0);
+		rays[1].dir = sf::Vector3f(0, 1, 0);
+		Raycast(rays);
+		Raycast(&rays[1]);
+		if (cam.velocity.y <= 0 && (cam.pos.y-rays[0].pos.y)<=1.0f)
+			cam.pos.y = 1.0f + rays[0].pos.y;
+	}
+
 	if (cam.velocity.x || cam.velocity.y || cam.velocity.z)
 		cam.airtime = 0.2f;
 	else if (cam.airtime > 0)
@@ -259,7 +290,7 @@ void SphereWorld::Raycast(Ray* r)
 	}
 	float xcoord = VAngleXZ(r->pos, spheres.at(drawSphere).pos)/PI2 + 1.0f;
 	float ycoord = (std::asinf(VNormalize(r->pos - spheres.at(drawSphere).pos).y) / PI + 0.5f);
-	float brightness = 1.0f / std::max(VLength(r->pos - cam.pos), 0.1f);
+	float brightness = 1.0f / std::max(VLength(r->pos - cam.pos), 1.0f);
 	sf::Vector2u texsize = textures[spheres.at(drawSphere).textureID].getSize();
 	sf::Color c = textures[spheres.at(drawSphere).textureID].getPixel(std::fmodf(xcoord*10, 1.0f) * texsize.x, std::fmodf(ycoord*5, 1.0f) * texsize.y);
 	c.r *= brightness;
