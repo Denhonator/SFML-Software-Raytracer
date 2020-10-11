@@ -57,7 +57,7 @@ SphereWorld::SphereWorld()
 
 	AddSphere(sf::Vector3f(0, 0, 0), 4);
 	for (int i = 0; i < 10; i++) {
-		AddSphere(sf::Vector3f((rand() % 20 - 10), (rand() % 20 - 10), (rand() % 20 - 10)), (rand() % 5 + 2));
+		AddSphere(sf::Vector3f((rand() % 30 - 15), (rand() % 10 - 5), (rand() % 30 - 15)), (rand() % 5 + 2));
 	}
 
 	cam.fovH *= PI / 180.0f;
