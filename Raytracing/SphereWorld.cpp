@@ -57,8 +57,12 @@ SphereWorld::SphereWorld()
 
 	AddSphere(sf::Vector3f(0, 0, 0), 4);
 	for (int i = 0; i < 10; i++) {
-		AddSphere(sf::Vector3f((rand() % 30 - 15), (rand() % 10 - 5), (rand() % 30 - 15)), (rand() % 5 + 2));
+		AddSphere(sf::Vector3f((rand() % 20 - 10), (rand() % 10 - 5), (rand() % 20 - 10)), (rand() % 6 + 2));
 	}
+	//for (int i = 0; i < 5; i++) {
+	//	AddLight(sf::Vector3f((rand() % 10 - 5), (rand() % 10 - 5), (rand() % 10 - 5)), (rand() % 2 + 2.0f), sf::Color::White);
+	//}
+	AddLight(sf::Vector3f(0, 0, 0), 1, sf::Color::White);
 
 	cam.fovH *= PI / 180.0f;
 	cam.fovV *= PI / 180.0f;
@@ -178,6 +182,20 @@ void SphereWorld::AddSphere(sf::Vector3f pos, float radius)
 				sf::Glsl::Vec4(spheres.at(i).pos.x, spheres.at(i).pos.y, spheres.at(i).pos.z, spheres.at(i).radius));
 	}
 	shader.setUniform("sphereCount", (int)spheres.size());
+	shader.setUniform("allSpheresCount", (int)lights.size() + (int)spheres.size());
+}
+
+void SphereWorld::AddLight(sf::Vector3f pos, float radius, sf::Color color)
+{
+	lights.push_back(Sphere{ pos, radius, color });
+	for (int i = 0; i < lights.size(); i++) {
+		shader.setUniform("spheres[" + std::to_string(i+(int)spheres.size()) + "]",
+			sf::Glsl::Vec4(lights.at(i).pos.x, lights.at(i).pos.y, lights.at(i).pos.z, lights.at(i).radius));
+		shader.setUniform("lights[" + std::to_string(i) + "]",
+			sf::Glsl::Vec4(color.r, color.g, color.b, lights.at(i).radius));
+	}
+	shader.setUniform("allSpheresCount", (int)lights.size() + (int)spheres.size());
+	shader.setUniform("lightCount", (int)lights.size());
 }
 
 void SphereWorld::Move(float forw, float right, float up)
@@ -315,8 +333,8 @@ void SphereWorld::Raycast(Ray* r)
 	float xcoord = VAngleXZ(r->pos, spheres.at(drawSphere).pos)/PI2 + 1.0f;
 	float ycoord = (std::asinf(VNormalize(r->pos - spheres.at(drawSphere).pos).y) / PI + 0.5f);
 	float brightness = 3.0f / std::max(VLength(r->pos - cam.pos), 3.0f);
-	sf::Vector2u texsize = textures[spheres.at(drawSphere).textureID].getSize();
-	sf::Color c = textures[spheres.at(drawSphere).textureID].getPixel(std::fmodf(xcoord*4*spheres.at(drawSphere).radius, 1.0f) * texsize.x, std::fmodf(ycoord*2*spheres.at(drawSphere).radius, 1.0f) * texsize.y);
+	sf::Vector2u texsize = textures[0].getSize();
+	sf::Color c = textures[0].getPixel(std::fmodf(xcoord*4*spheres.at(drawSphere).radius, 1.0f) * texsize.x, std::fmodf(ycoord*2*spheres.at(drawSphere).radius, 1.0f) * texsize.y);
 	c.r *= brightness;
 	c.g *= brightness;
 	c.b *= brightness;

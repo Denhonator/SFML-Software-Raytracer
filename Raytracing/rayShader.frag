@@ -5,7 +5,10 @@ uniform vec2 rotation;
 uniform vec2 fov;
 uniform vec2 size;
 uniform vec4 spheres[100];
+uniform vec4 lights[20];
 uniform int sphereCount;
+uniform int allSpheresCount;
+uniform int lightCount;
 
 const float PI = 3.1415926535;
 
@@ -37,18 +40,29 @@ vec4 Raycast(vec3 pos, vec3 dir)
 {
 	dir = VNormalize(dir);
 	float largestDist = 1;
+	float smallestDist = 9999;
 	int drawSphere = 0;
+	float minstep = 0.005;
 
-	while (largestDist>0) {
+	while (largestDist>0 && smallestDist<99999) {
 		largestDist = 0;
+		smallestDist = 99998 + allSpheresCount - sphereCount;
 		for (int i = 0; i < sphereCount; i++) {
 			float dist = VLength(pos - spheres[i].xyz);
-			if (spheres[i].w - dist > 0.01) {
+			if (spheres[i].w > dist + minstep) {
 				largestDist = max(largestDist, spheres[i].w - dist);
 				drawSphere = i;
 			}
 		}
-		pos += dir * largestDist;
+		for (int i = sphereCount; i < allSpheresCount; i++) {
+			float dist = VLength(pos - spheres[i].xyz);
+			if (dist > spheres[i].w + minstep) {
+				smallestDist = min(smallestDist, dist - spheres[i].w);
+				drawSphere = smallestDist < largestDist ? i : drawSphere;
+			}
+		}
+		pos += dir * min(largestDist, smallestDist);
+		minstep += 0.002;
 	}
 	
 	vec3 rpos = pos - spheres[drawSphere].xyz;
