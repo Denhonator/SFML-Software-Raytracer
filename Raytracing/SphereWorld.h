@@ -48,10 +48,12 @@ public:
 	int width = 320;
 	int height = 180;
 	Camera cam;
+	sf::Shader shader;
 	SphereWorld();
 	~SphereWorld();
 private:
 	std::vector<Sphere> spheres;
+	void AddSphere(sf::Vector3f pos, float radius);
 	void Move(float forw, float right, float up);
 	float LoopAngle(float angle);
 	sf::Vector2f VNormalize(sf::Vector2f v);
@@ -64,6 +66,7 @@ private:
 	float VLengthS(sf::Vector3f v);
 	void Raycast(Ray* r);
 	sf::Image* textures = new sf::Image[10];
+	sf::Texture* stextures = new sf::Texture[10];
 	Ray* rays = new Ray[16];
 	sf::Clock clock;
 };

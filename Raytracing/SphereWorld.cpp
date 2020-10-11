@@ -43,20 +43,25 @@ sf::Vector3f VRotateZ(sf::Vector3f v, float amount) {
 SphereWorld::SphereWorld()
 {
 	srand(time(NULL));
-	spheres.push_back(Sphere{ sf::Vector3f(0, 0, 0), 4, 0});
 
-	for (int i = 0; i < 30; i++) {
-		spheres.push_back(Sphere{ sf::Vector3f(1.0f*(rand()%30-15), 1.0f * (rand() % 30 - 15), 1.0f * (rand() % 30 - 15)), 1.0f * (rand() % 5 + 3), 0 });
+	if (!shader.loadFromFile("rayShader.frag", sf::Shader::Fragment))
+	{
+		std::cout << "Failed to load shader\n";
 	}
 
-	/*spheres.push_back(Sphere{ sf::Vector3f(5, 0, 0), 4, 0});
-	spheres.push_back(Sphere{ sf::Vector3f(-5, 0, 0), 4, 0});
-	spheres.push_back(Sphere{ sf::Vector3f(0, 0, 5), 4, 0});*/
-
 	textures[0].loadFromFile("Floor.png");
+	stextures[0].loadFromFile("Floor.png");
 
-	cam.fovH *= PI / 90.0f;
-	cam.fovV *= PI / 90.0f;
+	stextures[0].setRepeated(true);
+	shader.setUniform("ground", stextures[0]);
+
+	AddSphere(sf::Vector3f(0, 0, 0), 4);
+	for (int i = 0; i < 10; i++) {
+		AddSphere(sf::Vector3f((rand() % 20 - 10), (rand() % 20 - 10), (rand() % 20 - 10)), (rand() % 5 + 2));
+	}
+
+	cam.fovH *= PI / 180.0f;
+	cam.fovV *= PI / 180.0f;
 
 	//sf::Vector3f test = QToDir(sf::Vector3f(std::sin(PI / 8), 0, 0), std::cos(PI / 8), sf::Vector3f(0.707f,0,0.707f));
 	//std::cout << test.x << ", " << test.y << ", " << test.z << std::endl;
@@ -68,19 +73,14 @@ SphereWorld::~SphereWorld()
 
 void SphereWorld::UpdateImage(sf::Image* v, short ystart, short yadd, short xstart, short xadd)
 {
-	float vStart = -cam.fovV / 2;
-	float vIncreaseBy = cam.fovV / height;
+	float vStart = -cam.fovV;
+	float vIncreaseBy = cam.fovV / height * 2;
 	float vOff = std::sin(cam.hrotation);
-	float hStart =  - cam.fovH / 2;
-	float hIncreaseBy = cam.fovH / width;
+	float hStart =  - cam.fovH;
+	float hIncreaseBy = cam.fovH / width * 2;
 	float hrayAngle;
 	float vrayAngle;
 	Ray* r = &rays[ystart];
-	float m_tanf = std::tan(cam.fovV);
-	float m_aspect = width / (float)height;
-
-	/*float aspectRatio = width / height;
-	float s = 2.0f * std::tan(cam.fovH * 0.5f);*/
 
 	for (int i = xstart; i < width; i += xadd) {
 		hrayAngle = (hStart + hIncreaseBy * i);
@@ -161,9 +161,28 @@ void SphereWorld::LookUp(float angle)
 	//std::cout << cam.hrotation / PI * 180 << "\n";
 }
 
+void SphereWorld::AddSphere(sf::Vector3f pos, float radius)
+{
+	spheres.push_back(Sphere{ pos, radius });
+	for (int i = 0; i < spheres.size(); i++) {
+		bool removed = false;
+		for (int j = 0; j < spheres.size() && !removed; j++) {
+			if (i!=j && VLength(spheres.at(i).pos - spheres.at(j).pos) + spheres.at(i).radius <= spheres.at(j).radius) {
+				spheres.erase(spheres.begin() + i);
+				i--;
+				removed = true;
+			}
+		}
+		if(!removed)
+			shader.setUniform("spheres[" + std::to_string(i) + "]", 
+				sf::Glsl::Vec4(spheres.at(i).pos.x, spheres.at(i).pos.y, spheres.at(i).pos.z, spheres.at(i).radius));
+	}
+	shader.setUniform("sphereCount", (int)spheres.size());
+}
+
 void SphereWorld::Move(float forw, float right, float up)
 {
-	cam.velocity.y -= 0.003f;
+	cam.velocity.y -= 0.006f;
 	float xlimits[2] = { -0.1f,0.1f }; float ylimits[2] = { -0.8f,0.3f }; float zlimits[2] = { -0.1f,0.1f };
 	sf::Vector3f testPos;
 	for (unsigned int x = 0; x < 2; x++) {

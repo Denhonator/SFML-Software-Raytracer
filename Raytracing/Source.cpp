@@ -71,7 +71,7 @@ void main() {
 				else if (event.key.code == sf::Keyboard::S)
 					world.Move(-1 * sign, 2);
 				else if (event.key.code == sf::Keyboard::Space)
-					world.Jump(0.05f * sign);
+					world.Jump(0.1f * sign);
 				else if (event.key.code == sf::Keyboard::LShift)
 					world.cam.speedM = sign * 0.05f + 0.05f;
 				else if (event.key.code == sf::Keyboard::Escape)
@@ -126,7 +126,7 @@ void main() {
 
 		world.UpdateWorld();
 
-		for (unsigned int i = 0; i < threadCount; i++) {
+		/*for (unsigned int i = 0; i < threadCount; i++) {
 			draw[i] = cyclesPerFrame;
 		}
 		for (unsigned int i = 0; i < threadCount; i+=0) {
@@ -134,11 +134,18 @@ void main() {
 				i += 1;
 			else
 				sf::sleep(sf::milliseconds(1));
-		}
+		}*/
 		frameTime = clock.getElapsedTime().asSeconds();
 
 		screenTexture.loadFromImage(gameImage);
-		window.draw(screenSprite);
+
+		world.shader.setUniform("campos", world.cam.pos);
+		world.shader.setUniform("rotation", sf::Vector2f(world.cam.rotation, world.cam.hrotation));
+		world.shader.setUniform("fov", sf::Vector2f(world.cam.fovH, world.cam.fovV));
+		world.shader.setUniform("size", sf::Vector2f(window.getSize()));
+		world.shader.setUniform("texture", screenTexture);
+
+		window.draw(screenSprite, &world.shader);
 		window.display();
 
 		if (frameTime >= 0.021f) {		//Too slow
