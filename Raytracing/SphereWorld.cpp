@@ -62,7 +62,7 @@ SphereWorld::SphereWorld()
 	//for (int i = 0; i < 5; i++) {
 	//	AddLight(sf::Vector3f((rand() % 10 - 5), (rand() % 10 - 5), (rand() % 10 - 5)), (rand() % 2 + 2.0f), sf::Color::White);
 	//}
-	AddLight(sf::Vector3f(0, 0, 0), 1, sf::Color::White);
+	AddLight(sf::Vector3f(0, -1, 1), 1, sf::Color::White);
 
 	cam.fovH *= PI / 180.0f;
 	cam.fovV *= PI / 180.0f;
