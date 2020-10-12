@@ -57,12 +57,13 @@ SphereWorld::SphereWorld()
 
 	AddSphere(sf::Vector3f(0, 0, 0), 4);
 	for (int i = 0; i < 10; i++) {
-		AddSphere(sf::Vector3f((rand() % 20 - 10), (rand() % 10 - 5), (rand() % 20 - 10)), (rand() % 6 + 2));
+		AddSphere(sf::Vector3f((rand() % 20 - 10), (rand() % 10), (rand() % 20 - 10)), (rand() % 6 + 2));
 	}
 	//for (int i = 0; i < 5; i++) {
 	//	AddLight(sf::Vector3f((rand() % 10 - 5), (rand() % 10 - 5), (rand() % 10 - 5)), (rand() % 2 + 2.0f), sf::Color::White);
 	//}
-	AddLight(sf::Vector3f(0, -1, 1), 1, sf::Color::White);
+	AddLight(sf::Vector3f(0, -1, 1), 0.2f, sf::Glsl::Vec4(1,1,1,1), false);
+	AddLight(sf::Vector3f(0, -2, 1), 0.2f, sf::Glsl::Vec4(1,0.5,0.5,1), true);
 
 	cam.fovH *= PI / 180.0f;
 	cam.fovV *= PI / 180.0f;
@@ -88,21 +89,9 @@ void SphereWorld::UpdateImage(sf::Image* v, short ystart, short yadd, short xsta
 
 	for (int i = xstart; i < width; i += xadd) {
 		hrayAngle = (hStart + hIncreaseBy * i);
-		//r->angle = hrayAngle;
-		/*r->dir.x = std::sin(hrayAngle);
-		r->dir.z = std::cos(hrayAngle);*/
-		//r->dir /= std::cos(cam.rotation - hrayAngle);		//Fix distortion on edges
 
 		for (int j = ystart; j < height; j += yadd) {
-
-			//sf::Vector3f start = sf::Vector3f((i / width - 0.5f) * s * aspectRatio, (j / height - 0.5f) * s, 1.0f) * 0.3f;
-			//return Ray(start, start.Normalized());
-			//r->dir = start - cam.pos;
-
 			vrayAngle = (vStart + j * vIncreaseBy);
-			/*r->yscale = std::cos(cam.hrotation + vrayAngle);
-			r->dir.y = (std::sin(vrayAngle+cam.hrotation));*/
-			//vrayAngle += cam.hrotation;
 
 			sf::Vector3f up = VRotateX(sf::Vector3f(0,-1,0), -cam.hrotation);
 			sf::Vector3f forward = VRotateX(sf::Vector3f(0,0,1), -cam.hrotation);
@@ -111,18 +100,6 @@ void SphereWorld::UpdateImage(sf::Image* v, short ystart, short yadd, short xsta
 			up = VRotateY(up, cam.rotation);
 
 			r->dir = forward + right * hrayAngle + up * vrayAngle;
-			//r->dir = QToDir(sf::Vector3f(0, std::sin(hrayAngle / 2), 0), std::cos(hrayAngle / 2), sf::Vector3f(0,0,1));
-			//r->dir = VRotate(sf::Vector3f(0, 0, 1), sf::Vector3f(0, 1, 0), std::cos(hrayAngle), std::sin(hrayAngle));
-			//r->dir = VRotate(r->dir, sf::Vector3f(1, 0, 0), std::cos(vrayAngle), std::sin(vrayAngle));
-			//if (i == width / 2 && j == height / 2)
-			//	std::cout << r->dir.x << ", " << r->dir.z << std::endl;
-			//r->dir = QToDir(sf::Vector3f(std::sin(vrayAngle / 2), 0, 0), std::cos(vrayAngle / 2), r->dir);
-
-			//r->dir = sf::Vector3f(std::sin(hrayAngle), 0, std::cos(hrayAngle));
-			//r->dir = QToDir(sf::Vector3f(0, std::sin(-cam.rotation / 2), 0), std::cos(-cam.rotation / 2), r->dir);
-			//r->dir = QToDir(sf::Vector3f(std::sin(vrayAngle / 2), 0, 0), std::cos(hrayAngle / 2), r->dir);
-			//r->dir += QToDir(sf::Vector3f(0, PI / 2, 0), PI / 2, r->dir) * m_tanf * m_aspect * (float)i;
-			//r->dir += QToDir(sf::Vector3f(PI / 2, 0, 0), PI / 2, r->dir) * m_tanf * (float)j;
 
 			Raycast(r);
 			v->setPixel(i, j, r->c);
@@ -169,33 +146,47 @@ void SphereWorld::AddSphere(sf::Vector3f pos, float radius)
 {
 	spheres.push_back(Sphere{ pos, radius });
 	for (int i = 0; i < spheres.size(); i++) {
-		bool removed = false;
-		for (int j = 0; j < spheres.size() && !removed; j++) {
+		for (int j = 0; j < spheres.size(); j++) {
 			if (i!=j && VLength(spheres.at(i).pos - spheres.at(j).pos) + spheres.at(i).radius <= spheres.at(j).radius) {
 				spheres.erase(spheres.begin() + i);
 				i--;
-				removed = true;
+				break;
 			}
 		}
-		if(!removed)
-			shader.setUniform("spheres[" + std::to_string(i) + "]", 
-				sf::Glsl::Vec4(spheres.at(i).pos.x, spheres.at(i).pos.y, spheres.at(i).pos.z, spheres.at(i).radius));
 	}
-	shader.setUniform("sphereCount", (int)spheres.size());
-	shader.setUniform("allSpheresCount", (int)lights.size() + (int)spheres.size());
+	UpdateSpheres();
 }
 
-void SphereWorld::AddLight(sf::Vector3f pos, float radius, sf::Color color)
+void SphereWorld::AddLight(sf::Vector3f pos, float radius, sf::Glsl::Vec4 color, bool notlight)
 {
-	lights.push_back(Sphere{ pos, radius, color });
-	for (int i = 0; i < lights.size(); i++) {
-		shader.setUniform("spheres[" + std::to_string(i+(int)spheres.size()) + "]",
-			sf::Glsl::Vec4(lights.at(i).pos.x, lights.at(i).pos.y, lights.at(i).pos.z, lights.at(i).radius));
+	std::vector<Sphere>* v = notlight ? &ospheres : &lights;
+	v->push_back(Sphere{ pos, radius, color });
+	UpdateSpheres();
+}
+
+void SphereWorld::UpdateSpheres()
+{
+	for (int i = 0; i < spheres.size(); i++) {
+		shader.setUniform("spheres[" + std::to_string(i) + "]",
+			sf::Glsl::Vec4(spheres.at(i).pos.x, spheres.at(i).pos.y, spheres.at(i).pos.z, spheres.at(i).radius));
 		shader.setUniform("lights[" + std::to_string(i) + "]",
-			sf::Glsl::Vec4(color.r, color.g, color.b, lights.at(i).radius));
+			sf::Glsl::Vec4(0, 0, 0, 0));
 	}
-	shader.setUniform("allSpheresCount", (int)lights.size() + (int)spheres.size());
+	for (int i = 0; i < lights.size(); i++) {
+		shader.setUniform("spheres[" + std::to_string(i + (int)spheres.size()) + "]",
+			sf::Glsl::Vec4(lights.at(i).pos.x, lights.at(i).pos.y, lights.at(i).pos.z, lights.at(i).radius));
+		shader.setUniform("lights[" + std::to_string(i + (int)spheres.size()) + "]",
+			sf::Glsl::Vec4(lights.at(i).light.x, lights.at(i).light.y, lights.at(i).light.z, 1));
+	}
+	for (int i = 0; i < ospheres.size(); i++) {
+		shader.setUniform("spheres[" + std::to_string(i + (int)spheres.size() + (int)lights.size()) + "]",
+			sf::Glsl::Vec4(ospheres.at(i).pos.x, ospheres.at(i).pos.y, ospheres.at(i).pos.z, ospheres.at(i).radius));
+		shader.setUniform("lights[" + std::to_string(i + (int)spheres.size() + (int)lights.size()) + "]",
+			sf::Glsl::Vec4(ospheres.at(i).light.x, ospheres.at(i).light.y, ospheres.at(i).light.z, ospheres.at(i).light.w));
+	}
 	shader.setUniform("lightCount", (int)lights.size());
+	shader.setUniform("sphereCount", (int)spheres.size());
+	shader.setUniform("allSpheresCount", (int)lights.size() + (int)spheres.size() + (int)ospheres.size());
 }
 
 void SphereWorld::Move(float forw, float right, float up)

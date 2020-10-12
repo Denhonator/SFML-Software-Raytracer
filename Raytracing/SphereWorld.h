@@ -23,7 +23,7 @@ struct Camera {
 struct Sphere {
 	sf::Vector3f pos = { 0,0,0 };
 	float radius = 5.0f;
-	sf::Color light = sf::Color::Black;
+	sf::Glsl::Vec4 light;
 };
 
 struct Ray {
@@ -53,9 +53,11 @@ public:
 	~SphereWorld();
 private:
 	std::vector<Sphere> spheres;
+	std::vector<Sphere> ospheres;
 	std::vector<Sphere> lights;
 	void AddSphere(sf::Vector3f pos, float radius);
-	void AddLight(sf::Vector3f pos, float radius, sf::Color color);
+	void AddLight(sf::Vector3f pos, float radius, sf::Glsl::Vec4, bool notlight);
+	void UpdateSpheres();
 	void Move(float forw, float right, float up);
 	float LoopAngle(float angle);
 	sf::Vector2f VNormalize(sf::Vector2f v);
