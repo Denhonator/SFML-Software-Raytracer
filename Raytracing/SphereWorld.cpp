@@ -131,7 +131,8 @@ void SphereWorld::UpdateWorld()
 			}
 		}
 		if (!isinside) {
-			ospheres.at(i).move = VNormalize( spheres.at(index).pos - ospheres.at(i).pos );
+			ospheres.at(i).move += spheres.at(index).pos - ospheres.at(i).pos + sf::Vector3f(rand() % 3 - 1, rand() % 3 - 1, rand() % 3 - 1) * 0.5f;
+			ospheres.at(i).move = VNormalize(ospheres.at(i).move);
 		}
 	}
 

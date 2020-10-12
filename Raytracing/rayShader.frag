@@ -37,14 +37,13 @@ vec4 Raycast(vec3 pos, vec3 dir, int lit)
 {
 	dir = normalize(dir);
 	float largestDist = 1;
-	float smallestDist = 9999;
 	int drawSphere = 0;
 	float minstep = 0.004;
 	float totalDist = 0;
+	float normalsign = -1.0f;
 
-	while (largestDist>0 && smallestDist<99999 && totalDist<viewDist) {
+	while (largestDist>0 && totalDist<viewDist) {
 		largestDist = 0;
-		smallestDist = 99998 + allSpheresCount - sphereCount;
 		for (int i = 0; i < sphereCount; i++) {
 			float dist = length(pos - spheres[i].xyz);
 			if (spheres[i].w > dist + minstep) {
@@ -54,21 +53,27 @@ vec4 Raycast(vec3 pos, vec3 dir, int lit)
 				drawSphere = i;
 			}
 		}
-		for (int i = sphereCount; i < allSpheresCount; i++) {
-			float dist = length(pos - spheres[i].xyz);
-			if (dist > spheres[i].w + minstep) {
-				smallestDist = min(smallestDist, dist - spheres[i].w);
-			}
-			else if(abs(spheres[i].w-dist)<=minstep){
-				drawSphere = i;
-				largestDist = 0;
-			}
-		}
-		float smaller = min(largestDist, smallestDist);
-		pos += dir * smaller;
-		totalDist += smaller;
-		minstep += smaller*0.004 - min(-totalDist + viewDist*0.5, 0.0)*0.01;
+		
+		pos += dir * largestDist;
+		totalDist += largestDist;
+		minstep += largestDist*0.004 - min(-totalDist + viewDist*0.5, 0.0)*0.01;
 		minstep *= 1.1;
+	}
+	
+	for (int i = sphereCount; i < allSpheresCount; i++) {
+		vec3 tos = spheres[i].xyz-campos;
+		float toslen = length(tos);
+		float sang = acos(dot(dir, tos/toslen));
+		float sangt = atan(spheres[i].w, toslen);
+		
+		toslen -= spheres[i].w;
+		
+		int checkstep = int(sign(step(totalDist, toslen) + step(sangt, sang)));
+		
+		totalDist = checkstep * totalDist + (1-checkstep) * toslen;
+		drawSphere = checkstep * drawSphere + (1-checkstep) * i;
+		pos = checkstep * pos + (1-checkstep) * (campos + dir * toslen);
+		normalsign = checkstep * normalsign + (1-checkstep);
 	}
 	
 	vec3 rpos = pos - spheres[drawSphere].xyz;
@@ -84,7 +89,7 @@ vec4 Raycast(vec3 pos, vec3 dir, int lit)
 		vec3 tolight = spheres[i].xyz-pos;
 		float tolightlen = length(tolight);
 		vec3 tolightnorm = tolight/tolightlen;
-		float normalMult = length(normalize(-rpos)+tolightnorm)-1.0;
+		float normalMult = length(normalize(rpos*normalsign)+tolightnorm)-1.0;
 		
 		float shadow = 1.0;
 		for(int j=sphereCount+lightCount; j<allSpheresCount; j++){
@@ -99,12 +104,13 @@ vec4 Raycast(vec3 pos, vec3 dir, int lit)
 		}
 		
 		vec4 l = lights[i];
-		brightness += 40.0 / tolightlen / tolightlen * max(normalMult,0.3) * shadow;
+		brightness += 40.0 / tolightlen / tolightlen * max(0.5 + 0.5 * normalMult, 0.0) * shadow;
 	}
 	
 	brightness = lightc*2 + (1.0-lightc) * brightness;
 	c.rgb = lights[drawSphere].a*lights[drawSphere].rgb*0.5 + (1.0-lights[drawSphere].a)*c.rgb;
 	c.rgb *= clamp(brightness, 0.0, 2.0) + min(-totalDist + viewDist*0.66, 0.0);
+
 	return c;
 }
 

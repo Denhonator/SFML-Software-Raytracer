@@ -164,7 +164,7 @@ void main() {
 		if (frameTime <= 0.01f) {		//Pretty fast
 			cyclesPerFrame = std::min(cyclesPerFrame + 1, (int)fullCycles);
 		}
-		std::cout << 1.0f/frameTime << "\n";
+		//std::cout << 1.0f/frameTime << "\n";
 	}
 	run = false;
 	for (unsigned int i = 0; i < threadCount; i++) {
