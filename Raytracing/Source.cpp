@@ -34,7 +34,9 @@ void main() {
 	sf::Sprite screenSprite;
 	screenTexture.create(1920, 1080);
 	sf::RenderWindow window(sf::VideoMode(1920, 1080), "Rays");
-	window.setVerticalSyncEnabled(true);
+	sf::RenderTexture rt;
+	rt.create(640, 360);
+	window.setVerticalSyncEnabled(60);
 	world.width = width;
 	world.height = height;
 
@@ -135,18 +137,26 @@ void main() {
 			else
 				sf::sleep(sf::milliseconds(1));
 		}*/
-		frameTime = clock.getElapsedTime().asSeconds();
 
-		screenTexture.loadFromImage(gameImage);
+		//screenTexture.loadFromImage(gameImage);
 
 		world.shader.setUniform("campos", world.cam.pos);
 		world.shader.setUniform("rotation", sf::Vector2f(world.cam.rotation, world.cam.hrotation));
 		world.shader.setUniform("fov", sf::Vector2f(world.cam.fovH, world.cam.fovV));
-		world.shader.setUniform("size", sf::Vector2f(window.getSize()));
-		world.shader.setUniform("texture", screenTexture);
+		world.shader.setUniform("size", sf::Vector2f(rt.getSize()));
+		//world.shader.setUniform("texture", screenTexture);
+		//screenSprite.setTexture(rt.getTexture());
 
-		window.draw(screenSprite, &world.shader);
+		sf::Sprite sp(rt.getTexture());
+
+		rt.draw(sp, &world.shader);
+		rt.display();
+
+		window.setView(sf::View(sf::FloatRect(0, 0, rt.getSize().y*16.0f/9.0f, rt.getSize().y)));
+		window.draw(sp);
 		window.display();
+
+		frameTime = clock.getElapsedTime().asSeconds();
 
 		if (frameTime >= 0.021f) {		//Too slow
 			cyclesPerFrame = std::max(cyclesPerFrame - 1, 1);
@@ -154,7 +164,7 @@ void main() {
 		if (frameTime <= 0.01f) {		//Pretty fast
 			cyclesPerFrame = std::min(cyclesPerFrame + 1, (int)fullCycles);
 		}
-		//std::cout << width << "; " << height << "\n" << cyclesPerFrame << "\n";
+		std::cout << 1.0f/frameTime << "\n";
 	}
 	run = false;
 	for (unsigned int i = 0; i < threadCount; i++) {

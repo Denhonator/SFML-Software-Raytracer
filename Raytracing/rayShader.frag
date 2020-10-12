@@ -1,4 +1,3 @@
-uniform sampler2D texture;
 uniform sampler2D ground;
 uniform vec3 campos;
 uniform vec2 rotation;
@@ -32,41 +31,6 @@ float VAngleXZ(vec3 a, vec3 b)
 {
 	float ang = atan(b.z, b.x) - atan(a.z, a.x);
 	return ang;
-}
-
-vec4 LRaycast(vec3 pos, vec3 dir, int lindex, float maxdist)
-{
-	dir /= maxdist;
-	float largestDist = 1;
-	float smallestDist = 9999;
-	float minstep = 0.01;
-	float totalDist = 0.1;
-	pos += dir * totalDist;
-
-	while (totalDist<maxdist && smallestDist<99999 && largestDist>0) {
-		largestDist = 0;
-		smallestDist = 99998 + allSpheresCount - sphereCount;
-		for (int i = 0; i < sphereCount; i++) {
-			float dist = length(pos - spheres[i].xyz);
-			if (spheres[i].w > dist + minstep) {
-				largestDist = max(largestDist, spheres[i].w - dist);
-			}
-		}
-		for (int i = sphereCount; i < allSpheresCount; i++) {
-			float dist = length(pos - spheres[i].xyz);
-			if (dist > spheres[i].w + minstep) {
-				smallestDist = min(smallestDist, dist - spheres[i].w);
-			}
-		}
-		float smaller = clamp(largestDist, smallestDist, minstep);
-		pos += dir * smaller;
-		totalDist += smaller;
-		minstep += smaller*0.01;
-	}
-
-	vec4 c = lights[lindex];
-	c.a = 40.0 / totalDist / totalDist * step(maxdist, totalDist);
-	return c;
 }
 
 vec4 Raycast(vec3 pos, vec3 dir, int lit)
@@ -146,8 +110,6 @@ vec4 Raycast(vec3 pos, vec3 dir, int lit)
 
 void main()
 {
-	vec4 base = texture2D(texture, gl_TexCoord[0].xy);
-
 	vec3 up = VRotateX(vec3(0,1,0), -rotation.y);
 	vec3 forward = VRotateX(vec3(0,0,1), -rotation.y);
 	vec3 right = VRotateY(vec3(1,0,0), rotation.x);
