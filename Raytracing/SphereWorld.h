@@ -24,6 +24,7 @@ struct Sphere {
 	sf::Vector3f pos = { 0,0,0 };
 	float radius = 5.0f;
 	sf::Glsl::Vec4 light;
+	sf::Vector3f move = { 0,0,0 };
 };
 
 struct Ray {
@@ -57,7 +58,7 @@ private:
 	std::vector<Sphere> lights;
 	void AddSphere(sf::Vector3f pos, float radius);
 	void AddLight(sf::Vector3f pos, float radius, sf::Glsl::Vec4, bool notlight);
-	void UpdateSpheres();
+	void UpdateSpheres(bool onlyo=false);
 	void Move(float forw, float right, float up);
 	float LoopAngle(float angle);
 	sf::Vector2f VNormalize(sf::Vector2f v);

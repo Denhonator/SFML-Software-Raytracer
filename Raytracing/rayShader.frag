@@ -10,6 +10,7 @@ uniform int sphereCount;
 uniform int allSpheresCount;
 uniform int lightCount;
 
+const float viewDist = 40.0;
 const float PI = 3.1415926535;
 
 vec3 VRotateX(vec3 v, float amount) {
@@ -77,7 +78,7 @@ vec4 Raycast(vec3 pos, vec3 dir, int lit)
 	float minstep = 0.004;
 	float totalDist = 0;
 
-	while (largestDist>0 && smallestDist<99999) {
+	while (largestDist>0 && smallestDist<99999 && totalDist<viewDist) {
 		largestDist = 0;
 		smallestDist = 99998 + allSpheresCount - sphereCount;
 		for (int i = 0; i < sphereCount; i++) {
@@ -102,8 +103,8 @@ vec4 Raycast(vec3 pos, vec3 dir, int lit)
 		float smaller = min(largestDist, smallestDist);
 		pos += dir * smaller;
 		totalDist += smaller;
-		minstep += smaller*0.001;
-		minstep *= 1.2;
+		minstep += smaller*0.004 - min(-totalDist + viewDist*0.5, 0.0)*0.01;
+		minstep *= 1.1;
 	}
 	
 	vec3 rpos = pos - spheres[drawSphere].xyz;
@@ -115,21 +116,22 @@ vec4 Raycast(vec3 pos, vec3 dir, int lit)
 	
 	float lightc = step(sphereCount, drawSphere) * step(drawSphere, sphereCount+lightCount-1);
 	
-	for(int i=sphereCount; i<sphereCount+lightCount && lightc==0; i++){
+	for(int i=sphereCount; i<sphereCount+lightCount && lightc==0 && totalDist<viewDist-2.0; i++){
 		vec3 tolight = spheres[i].xyz-pos;
 		float tolightlen = length(tolight);
 		vec3 tolightnorm = tolight/tolightlen;
 		float normalMult = length(normalize(-rpos)+tolightnorm)-1.0;
-		//if(normalMult>0 && tolightlen<15){
-		//	vec4 l = LRaycast(pos, spheres[i].xyz-pos, i, tolightlen);
-		//	brightness += l.a * normalMult;
-		//}
 		
 		float shadow = 1.0;
 		for(int j=sphereCount+lightCount; j<allSpheresCount; j++){
-			vec3 tos = spheres[j].xyz-pos;
-			float dists = length(tos);
-			shadow *= clamp((4.0 - VLengthS(tos/dists+tolightnorm))*3, 1.0-abs(sign(j-drawSphere)), 1.0);
+			float lightshadowdist = distance(spheres[i].xyz, spheres[j].xyz);
+			float sanglet = atan(spheres[j].w, lightshadowdist);
+			float sangle = acos(dot(-tolightnorm, (spheres[j].xyz-spheres[i].xyz)/lightshadowdist));
+			
+			float pointshadowdist = 1.5 / (0.8 + 0.2 * distance(pos, spheres[j].xyz));
+			sangle = sangle*pointshadowdist - (pointshadowdist-1.0)*sanglet;
+
+			shadow *= clamp(sangle/sanglet, 1.0-abs(sign(j-drawSphere)), 1.0);
 		}
 		
 		vec4 l = lights[i];
@@ -138,7 +140,7 @@ vec4 Raycast(vec3 pos, vec3 dir, int lit)
 	
 	brightness = lightc*2 + (1.0-lightc) * brightness;
 	c.rgb = lights[drawSphere].a*lights[drawSphere].rgb*0.5 + (1.0-lights[drawSphere].a)*c.rgb;
-	c.rgb *= clamp(brightness, 0.1, 2.0);
+	c.rgb *= clamp(brightness, 0.0, 2.0) + min(-totalDist + viewDist*0.66, 0.0);
 	return c;
 }
 

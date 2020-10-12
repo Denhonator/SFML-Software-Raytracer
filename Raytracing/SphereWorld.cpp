@@ -63,7 +63,7 @@ SphereWorld::SphereWorld()
 	//	AddLight(sf::Vector3f((rand() % 10 - 5), (rand() % 10 - 5), (rand() % 10 - 5)), (rand() % 2 + 2.0f), sf::Color::White);
 	//}
 	AddLight(sf::Vector3f(0, -1, 1), 0.2f, sf::Glsl::Vec4(1,1,1,1), false);
-	AddLight(sf::Vector3f(0, -2, 1), 0.2f, sf::Glsl::Vec4(1,0.5,0.5,1), true);
+	AddLight(sf::Vector3f(0, -2.5f, 1), 0.2f, sf::Glsl::Vec4(1,0.5,0.5,1), true);
 
 	cam.fovH *= PI / 180.0f;
 	cam.fovV *= PI / 180.0f;
@@ -112,6 +112,10 @@ void SphereWorld::UpdateWorld()
 	if (cam.velocity.x != 0 || cam.velocity.z != 0 || cam.velocity.y != 0 || cam.airtime > 0) {
 		Move(cam.speed.x, cam.speed.z, cam.speed.y);
 	}
+	for (int i = 0; i < ospheres.size(); i++) {
+		ospheres.at(i).pos.y += std::sin(time(NULL)) * 0.02f;;
+	}
+	UpdateSpheres(true);
 }
 
 void SphereWorld::Move(float forw, float right)
@@ -164,15 +168,15 @@ void SphereWorld::AddLight(sf::Vector3f pos, float radius, sf::Glsl::Vec4 color,
 	UpdateSpheres();
 }
 
-void SphereWorld::UpdateSpheres()
+void SphereWorld::UpdateSpheres(bool onlyo)
 {
-	for (int i = 0; i < spheres.size(); i++) {
+	for (int i = 0; i < spheres.size() && !onlyo; i++) {
 		shader.setUniform("spheres[" + std::to_string(i) + "]",
 			sf::Glsl::Vec4(spheres.at(i).pos.x, spheres.at(i).pos.y, spheres.at(i).pos.z, spheres.at(i).radius));
 		shader.setUniform("lights[" + std::to_string(i) + "]",
 			sf::Glsl::Vec4(0, 0, 0, 0));
 	}
-	for (int i = 0; i < lights.size(); i++) {
+	for (int i = 0; i < lights.size() && !onlyo; i++) {
 		shader.setUniform("spheres[" + std::to_string(i + (int)spheres.size()) + "]",
 			sf::Glsl::Vec4(lights.at(i).pos.x, lights.at(i).pos.y, lights.at(i).pos.z, lights.at(i).radius));
 		shader.setUniform("lights[" + std::to_string(i + (int)spheres.size()) + "]",
