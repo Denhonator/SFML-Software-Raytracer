@@ -45,19 +45,18 @@ vec4 Raycast(vec3 pos, vec3 dir, int lit)
 		largestDist = 0;
 		for (int i = 0; i < sphereCount; i++) {
 			vec3 rpos = pos-spheres[i].xyz;
+			int checkstep = int(step(length(rpos), spheres[i].w));
 
-			if(length(rpos) < spheres[i].w){
+			float b = checkstep * 2*dot(rpos, dir);
+			float c = checkstep * VLengthS(rpos) - spheres[i].w*spheres[i].w;
 
-				float b = 2*dot(rpos, dir);
-				float c = VLengthS(rpos) - spheres[i].w*spheres[i].w;
+			float tosurf = (-b + abs(sqrt(b*b - 4*c))) * 0.5;
+			checkstep *= int(step(largestDist, tosurf));
 
-				float tosurf = (-b + abs(sqrt(b*b - 4*c))) * 0.5;
-				int checkstep = int(step(largestDist, tosurf) * step(length(rpos), spheres[i].w));
+			largestDist = checkstep * tosurf + (1-checkstep) * largestDist;
+			drawSphere = checkstep * i + (1-checkstep) * drawSphere;
 
-				largestDist = checkstep * tosurf + (1-checkstep) * largestDist;
-				drawSphere = checkstep * i + (1-checkstep) * drawSphere;
-
-			}
+		
 		}
 
 		pos += dir * largestDist;
