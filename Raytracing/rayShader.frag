@@ -36,31 +36,24 @@ float VAngleXZ(vec3 a, vec3 b)
 vec4 Raycast(vec3 pos, vec3 dir, int lit)
 {
 	dir = normalize(dir);
-	float largestDist = 1;
 	int drawSphere = 0;
-	float totalDist = 0;
-	float normalsign = -1.0f;
+	float totalDist = 0.0;
+	float normalsign = -1.0;
 
-	while (largestDist>0.1) {
-		largestDist = 0;
-		for (int i = 0; i < sphereCount; i++) {
-			vec3 rpos = pos-spheres[i].xyz;
-			int checkstep = int(step(length(rpos), spheres[i].w));
+	for (int j = 0; j < sphereCount*3; j++) {
+		int i = j%sphereCount;
+		vec3 rpos = pos-spheres[i].xyz;
+		int checkstep = int(step(length(rpos), spheres[i].w));
 
-			float b = checkstep * 2*dot(rpos, dir);
-			float c = checkstep * VLengthS(rpos) - spheres[i].w*spheres[i].w;
+		float b = checkstep * 2.0*dot(rpos, dir);
+		float c = checkstep * VLengthS(rpos) - spheres[i].w*spheres[i].w;
 
-			float tosurf = (-b + abs(sqrt(b*b - 4*c))) * 0.5;
-			checkstep *= int(step(largestDist, tosurf));
+		float tosurf = checkstep * (-b + abs(sqrt(b*b - 4*c))) * 0.5;
 
-			largestDist = checkstep * tosurf + (1-checkstep) * largestDist;
-			drawSphere = checkstep * i + (1-checkstep) * drawSphere;
-
+		drawSphere = checkstep * i + (1-checkstep) * drawSphere;
 		
-		}
-
-		pos += dir * largestDist;
-		totalDist += largestDist;
+		pos += dir * tosurf;
+		totalDist += tosurf;
 	}
 
 	for (int i = sphereCount; i < allSpheresCount; i++) {
@@ -88,7 +81,7 @@ vec4 Raycast(vec3 pos, vec3 dir, int lit)
 	
 	float lightc = step(sphereCount, drawSphere) * step(drawSphere, sphereCount+lightCount-1);
 	
-	for(int i=sphereCount; i<sphereCount+lightCount && lightc==0 && totalDist<viewDist-2.0; i++){
+	for(int i=sphereCount; i<sphereCount+lightCount; i++){
 		vec3 tolight = spheres[i].xyz-pos;
 		float tolightlen = length(tolight);
 		vec3 tolightnorm = tolight/tolightlen;
@@ -103,16 +96,16 @@ vec4 Raycast(vec3 pos, vec3 dir, int lit)
 			float pointshadowdist = 1.5 / (0.8 + 0.2 * distance(pos, spheres[j].xyz));
 			sangle = sangle*pointshadowdist - (pointshadowdist-1.0)*sanglet;
 
-			shadow *= clamp(sangle/sanglet, 1.0-abs(sign(j-drawSphere)), 1.0);
+			shadow *= clamp(sangle/sanglet + 1.0-step(lightshadowdist, tolightlen)*smoothstep(0.0, 0.5, normalMult), 1.0-abs(sign(j-drawSphere)), 1.0);
 		}
 		
 		vec4 l = lights[i];
-		brightness += 40.0 / tolightlen / tolightlen * max(0.5 + 0.5 * normalMult, 0.0) * shadow;
+		brightness += 10.0 / tolightlen / tolightlen * max(0.5 + 0.5 * normalMult, 0.0) * shadow;
 	}
 	
 	brightness = lightc*2 + (1.0-lightc) * brightness;
 	c.rgb = lights[drawSphere].a*lights[drawSphere].rgb*0.5 + (1.0-lights[drawSphere].a)*c.rgb;
-	c.rgb *= clamp(brightness, 0.0, 2.0) + min(-totalDist + viewDist*0.66, 0.0);
+	c.rgb *= clamp(brightness, 0.0, 3.0) + min(-totalDist + viewDist*0.66, 0.0);
 
 	return c;
 }

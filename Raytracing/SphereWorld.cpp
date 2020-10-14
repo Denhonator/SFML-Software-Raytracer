@@ -136,7 +136,7 @@ void SphereWorld::UpdateWorld()
 		}
 	}
 
-	UpdateSpheres(true);
+	UpdateSpheres();
 }
 
 void SphereWorld::Move(float forw, float right)
@@ -191,6 +191,19 @@ void SphereWorld::AddLight(sf::Vector3f pos, float radius, sf::Glsl::Vec4 color,
 
 void SphereWorld::UpdateSpheres(bool onlyo)
 {
+	std::vector<Sphere> temp = spheres;
+	spheres.clear();
+	for (int i = 0; i < temp.size(); i++) {
+		float dist = VLength(temp.at(i).pos - cam.pos) + temp.at(i).radius;
+		int inserti = 0;
+		for (int j = 0; j < spheres.size(); j++) {
+			if (dist < VLength(spheres.at(j).pos - cam.pos) + spheres.at(j).radius)
+				break;
+			inserti++;
+		}
+		spheres.insert(spheres.begin() + inserti, temp.at(i));
+	}
+
 	for (int i = 0; i < spheres.size() && !onlyo; i++) {
 		shader.setUniform("spheres[" + std::to_string(i) + "]",
 			sf::Glsl::Vec4(spheres.at(i).pos.x, spheres.at(i).pos.y, spheres.at(i).pos.z, spheres.at(i).radius));

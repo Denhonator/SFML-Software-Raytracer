@@ -150,6 +150,9 @@
   <ItemGroup>
     <ClInclude Include="SphereWorld.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="rayShader.frag" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
