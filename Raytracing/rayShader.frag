@@ -9,7 +9,7 @@ uniform int sphereCount;
 uniform int allSpheresCount;
 uniform int lightCount;
 
-const float viewDist = 40.0;
+const float viewDist = 50.0;
 const float PI = 3.1415926535;
 
 vec3 VRotateX(vec3 v, float amount) {
@@ -38,28 +38,32 @@ vec4 Raycast(vec3 pos, vec3 dir, int lit)
 	dir = normalize(dir);
 	float largestDist = 1;
 	int drawSphere = 0;
-	float minstep = 0.004;
 	float totalDist = 0;
 	float normalsign = -1.0f;
 
-	while (largestDist>0 && totalDist<viewDist) {
+	while (largestDist>0.1) {
 		largestDist = 0;
 		for (int i = 0; i < sphereCount; i++) {
-			float dist = length(pos - spheres[i].xyz);
-			if (spheres[i].w > dist + minstep) {
-				largestDist = max(largestDist, spheres[i].w - dist);
-			}
-			else if(abs(spheres[i].w-dist)<=minstep){
-				drawSphere = i;
+			vec3 rpos = pos-spheres[i].xyz;
+
+			if(length(rpos) < spheres[i].w){
+
+				float b = 2*dot(rpos, dir);
+				float c = VLengthS(rpos) - spheres[i].w*spheres[i].w;
+
+				float tosurf = (-b + abs(sqrt(b*b - 4*c))) * 0.5;
+				int checkstep = int(step(largestDist, tosurf) * step(length(rpos), spheres[i].w));
+
+				largestDist = checkstep * tosurf + (1-checkstep) * largestDist;
+				drawSphere = checkstep * i + (1-checkstep) * drawSphere;
+
 			}
 		}
-		
+
 		pos += dir * largestDist;
 		totalDist += largestDist;
-		minstep += largestDist*0.004 - min(-totalDist + viewDist*0.5, 0.0)*0.01;
-		minstep *= 1.1;
 	}
-	
+
 	for (int i = sphereCount; i < allSpheresCount; i++) {
 		vec3 tos = spheres[i].xyz-campos;
 		float toslen = length(tos);
@@ -76,7 +80,7 @@ vec4 Raycast(vec3 pos, vec3 dir, int lit)
 		normalsign = checkstep * normalsign + (1-checkstep);
 	}
 	
-	vec3 rpos = pos - spheres[drawSphere].xyz;
+	vec3 rpos = pos-spheres[drawSphere].xyz;
 	float ycoord = rpos.y / (0.8 + 0.2 * (abs(rpos.x) + abs(rpos.z)));
 	float xcoord = min(abs(rpos.z), abs(rpos.x));
 	vec4 c = texture2D(ground, vec2(xcoord, ycoord));
