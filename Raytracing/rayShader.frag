@@ -75,7 +75,7 @@ vec4 Raycast(vec3 pos, vec3 dir, int lit)
 	vec3 rpos = pos-spheres[drawSphere].xyz;
 	float ycoord = rpos.y / (0.8 + 0.2 * (abs(rpos.x) + abs(rpos.z)));
 	float xcoord = min(abs(rpos.z), abs(rpos.x));
-	vec4 c = texture2D(ground, vec2(xcoord, ycoord));
+	vec4 c = textureLod(ground, vec2(xcoord, ycoord), totalDist*0.05);
 	
 	float brightness = lit * 1.0 / max(totalDist, 1.0);
 	

@@ -53,6 +53,7 @@ SphereWorld::SphereWorld()
 	stextures[0].loadFromFile("Floor.png");
 
 	stextures[0].setRepeated(true);
+	stextures[0].generateMipmap();
 	shader.setUniform("ground", stextures[0]);
 
 	AddSphere(sf::Vector3f(0, 0, 0), 4);

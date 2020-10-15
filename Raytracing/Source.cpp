@@ -35,7 +35,7 @@ void main() {
 	screenTexture.create(1920, 1080);
 	sf::RenderWindow window(sf::VideoMode(1920, 1080), "Rays");
 	sf::RenderTexture rt;
-	rt.create(640, 360);
+	rt.create(width, height);
 	window.setVerticalSyncEnabled(60);
 	world.width = width;
 	world.height = height;
