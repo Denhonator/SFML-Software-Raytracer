@@ -62,7 +62,7 @@ SphereWorld::SphereWorld()
 	}
 	for (int i = 0; i < 5; i++) {
 		AddLight(sf::Vector3f((rand() % 10 - 5), (rand() % 10 - 5), (rand() % 10 - 5)), (rand() % 2 + 1)*0.3f, sf::Glsl::Vec4(0.5,1,1,1), true);
-		ospheres.at(ospheres.size() - 1).move = sf::Vector3f(rand() % 3 - 1, rand() % 3 - 1, rand() % 3 - 1);
+		//ospheres.at(ospheres.size() - 1).move = sf::Vector3f(rand() % 3 - 1, rand() % 3 - 1, rand() % 3 - 1);
 	}
 
 	AddLight(sf::Vector3f(0, -1, 1), 0.2f, sf::Glsl::Vec4(1,1,1,1), false);
@@ -210,6 +210,8 @@ void SphereWorld::UpdateSpheres(bool onlyo)
 			sf::Glsl::Vec4(spheres.at(i).pos.x, spheres.at(i).pos.y, spheres.at(i).pos.z, spheres.at(i).radius));
 		shader.setUniform("lights[" + std::to_string(i) + "]",
 			sf::Glsl::Vec4(0, 0, 0, 0));
+		shader.setUniform("uvs[" + std::to_string(i) + "]",
+			sf::Glsl::Vec4(0.5f, 0.0f, 0, 0));
 	}
 	for (int i = 0; i < lights.size() && !onlyo; i++) {
 		shader.setUniform("spheres[" + std::to_string(i + (int)spheres.size()) + "]",
@@ -222,6 +224,8 @@ void SphereWorld::UpdateSpheres(bool onlyo)
 			sf::Glsl::Vec4(ospheres.at(i).pos.x, ospheres.at(i).pos.y, ospheres.at(i).pos.z, ospheres.at(i).radius));
 		shader.setUniform("lights[" + std::to_string(i + (int)spheres.size() + (int)lights.size()) + "]",
 			sf::Glsl::Vec4(ospheres.at(i).light.x, ospheres.at(i).light.y, ospheres.at(i).light.z, ospheres.at(i).light.w));
+		shader.setUniform("uvs[" + std::to_string(i + (int)spheres.size() + (int)lights.size()) + "]",
+			sf::Glsl::Vec4(0.5f, 1.0f, 0.5f, 0.0f));
 	}
 	shader.setUniform("lightCount", (int)lights.size());
 	shader.setUniform("sphereCount", (int)spheres.size());

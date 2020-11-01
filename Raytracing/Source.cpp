@@ -6,8 +6,8 @@ sf::Texture screenTexture;
 sf::Image gameImage;
 SphereWorld world;
 unsigned int lastIndex = 0;
-unsigned int width = 960;		//Raycast + screen texture resolution
-unsigned int height = 540;
+unsigned int width = 1920;		//Raycast + screen texture resolution
+unsigned int height = 1080;
 int cyclesPerFrame = 1;
 short fullCycles = 4;
 const int threadCount = 8;
@@ -32,8 +32,8 @@ void main() {
 	bool lockMouse = true;
 
 	sf::Sprite screenSprite;
-	screenTexture.create(1920, 1080);
-	sf::RenderWindow window(sf::VideoMode(1920, 1080), "Rays");
+	//screenTexture.create(3840, 2160);
+	sf::RenderWindow window(sf::VideoMode(width*2, height*2), "Rays");
 	sf::RenderTexture rt;
 	rt.create(width, height);
 	window.setVerticalSyncEnabled(60);
@@ -42,7 +42,7 @@ void main() {
 
 	screenSprite.setTexture(screenTexture);
 	screenSprite.setScale(window.getSize().x / (float)width, window.getSize().y / (float)height);
-	gameImage.create(1920,1080);
+	//gameImage.create(1920,1080);
 
 	std::thread threads[threadCount];
 
