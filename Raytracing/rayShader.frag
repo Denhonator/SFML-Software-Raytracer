@@ -34,6 +34,32 @@ float VAngleXZ(vec3 a, vec3 b)
 	return ang;
 }
 
+vec2 sminPOW(vec3 rayPoint, float k)
+{
+	float mults = 1.0;
+	float adds = 0.0;
+	float shortest = 9999999.0;
+	float closest = 0;
+	
+	for (int i = sphereCount; i < allSpheresCount; i++) {
+		vec3 tos = spheres[i].xyz-rayPoint;
+		float toslen = length(tos) - spheres[i].w;
+		closest = step(shortest, toslen) * closest + (1-step(shortest, toslen)) * i;
+		shortest = min(shortest, toslen);
+		
+		float p = pow(toslen, k);
+		mults *= p;
+		adds += p;
+	}
+    return vec2(min(shortest, pow(mults/adds, 1.0/k)), closest);
+}
+
+float polsmin( float a, float b, float k )
+{
+	float h = max( k-abs(a-b), 0.0 )/k;
+    return min( a, b ) - h*h*k*(1.0/4.0);
+}
+
 vec4 Raycast(vec3 pos, vec3 dir, int lit)
 {
 	dir = normalize(dir);
@@ -65,24 +91,38 @@ vec4 Raycast(vec3 pos, vec3 dir, int lit)
 	for (int i = sphereCount; i < allSpheresCount; i++) {
 		vec3 tos = spheres[i].xyz-campos;
 		float toslen = length(tos);
+		vec3 testPos = campos + dir * toslen;
+		float testDist = distance(testPos, spheres[i])-spheres[i].w;
+		float smoothDist = testDist;
+		float shortest = testDist;
+		float closest = i;
+		
+		for (int j = sphereCount; j < allSpheresCount; j++) {
+			float otherDist = distance(testPos, spheres[j]) - spheres[j].w + (1-abs(sign(i-j)))*999999;
+			smoothDist = min(smoothDist, polsmin(testDist, otherDist, 0.5));
+			closest = step(shortest, otherDist) * closest + (1-step(shortest, otherDist)) * j;
+			shortest = min(shortest, otherDist);
+		}
+	
+		//toslen += minAndSphere.x;
+		int checkstep = sign( step(0.1, min(smoothDist, shortest)) + step(totalDist, toslen) + abs(i-closest) );
+
 		vec3 tosn = tos / toslen;
-		float sang = acos(dot(dir, tosn));
 		float sangY = asin(dir.y) - asin(tosn.y);
 		float sangt = atan(spheres[i].w, toslen);
-		
-		toslen -= spheres[i].w;
 		
 		vec3 tpos = ((campos + dir * toslen)-spheres[i].xyz) / spheres[i].w;
 		float sangXZ = atan(tpos.z, tpos.x);
 		
+		// Texture coordinates
 		float yc = mod(-0.25 * sangY/sangt + uvs[i].x*0.5, uvs[i].x) + uvs[i].w;
 		float xc = mod(0.125 * sangXZ + uvs[i].x*0.5, uvs[i].x) + uvs[i].z;
 		vec4 tc = textureLod(ground, vec2(xc, yc), toslen*0.05);
 		
+		// Use texture or color based on alpha check
 		tc.a = max(lights[i].a, tc.a);
 		
-		int checkstep = int(sign(step(totalDist, toslen) + step(sangt, sang) + step(tc.a, 0.5)));
-		
+		// Set variables to draw this sphere
 		c = checkstep * c + (1-checkstep) * tc;
 		totalDist = checkstep * totalDist + (1-checkstep) * toslen;
 		drawSphere = checkstep * drawSphere + (1-checkstep) * i;

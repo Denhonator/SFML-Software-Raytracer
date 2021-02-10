@@ -6,8 +6,8 @@ sf::Texture screenTexture;
 sf::Image gameImage;
 SphereWorld world;
 unsigned int lastIndex = 0;
-unsigned int width = 3840;		//Raycast + screen texture resolution
-unsigned int height = 2160;
+unsigned int width = 1920;		//Raycast + screen texture resolution
+unsigned int height = 1080;
 int cyclesPerFrame = 1;
 short fullCycles = 4;
 const int threadCount = 8;
