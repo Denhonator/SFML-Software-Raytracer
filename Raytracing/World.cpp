@@ -47,7 +47,7 @@ World::World() {
 	for (unsigned int i = 0; i < 5; i++) {
 		Dynamic d;
 		d.textureID = 0;
-		d.pos.x += i*0.5f;
+		d.pos.x += i*0.2f;
 		d.dir = sf::Vector3f((rand() % 40 - rand() % 20) * 0.01f, 0, (rand() % 40 - rand() % 20) * 0.01f);
 		dyn.push_back(d);
 	}

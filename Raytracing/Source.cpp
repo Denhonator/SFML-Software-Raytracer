@@ -6,8 +6,8 @@ sf::Texture screenTexture;
 sf::Image gameImage;
 SphereWorld world;
 unsigned int lastIndex = 0;
-unsigned int width = 1920;		//Raycast + screen texture resolution
-unsigned int height = 1080;
+unsigned int width = 3840;		//Raycast + screen texture resolution
+unsigned int height = 2160;
 int cyclesPerFrame = 1;
 short fullCycles = 4;
 const int threadCount = 8;
@@ -33,7 +33,7 @@ void main() {
 
 	sf::Sprite screenSprite;
 	//screenTexture.create(3840, 2160);
-	sf::RenderWindow window(sf::VideoMode(width*2, height*2), "Rays");
+	sf::RenderWindow window(sf::VideoMode(std::min((int)width*2, 3840), std::min((int)height*2, 2160)), "Rays");
 	sf::RenderTexture rt;
 	rt.create(width, height);
 	window.setVerticalSyncEnabled(60);
@@ -152,7 +152,7 @@ void main() {
 		rt.draw(sp, &world.shader);
 		rt.display();
 
-		window.setView(sf::View(sf::FloatRect(0, 0, rt.getSize().y*16.0f/9.0f, rt.getSize().y)));
+		window.setView(sf::View(sf::FloatRect(0, 0, rt.getSize().y*width/height, rt.getSize().y)));
 		window.draw(sp);
 		window.display();
 

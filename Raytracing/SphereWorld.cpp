@@ -61,7 +61,8 @@ SphereWorld::SphereWorld()
 		AddSphere(sf::Vector3f((rand() % 20 - 10), (rand() % 10 - 5), (rand() % 20 - 10)), (rand() % 6 + 2));
 	}
 	for (int i = 0; i < 5; i++) {
-		AddLight(sf::Vector3f((rand() % 10 - 5), (rand() % 10 - 5), (rand() % 10 - 5)), (rand() % 2 + 1)*0.3f, sf::Glsl::Vec4(0.5,1,1,1), true);
+		//AddLight(sf::Vector3f((rand() % 10 - 5), (rand() % 10 - 5), (rand() % 10 - 5)), (rand() % 2 + 1)*0.3f, sf::Glsl::Vec4(0.5,1,1,1), true);
+		AddLight(sf::Vector3f(i*1.5f, 1, 1), (rand() % 2 + 1) * 0.3f, sf::Glsl::Vec4(0.5, 1, 1, 1), true);
 		//ospheres.at(ospheres.size() - 1).move = sf::Vector3f(rand() % 3 - 1, rand() % 3 - 1, rand() % 3 - 1);
 	}
 
