@@ -88,10 +88,13 @@ vec4 Raycast(vec3 pos, vec3 dir, int lit)
 	float shortest = 999999999.0;
 	int closest = 0;
 	float smoothDist = 999999999.0;
+	float minstep = 0.01;
 
-	while (ballDist < totalDist && smoothDist > 0.1) {
+	while (ballDist < totalDist && smoothDist > minstep) {
 		vec3 testPos = campos + dir * ballDist;
 		smoothDist = 999999999;
+		closest = 0;
+		shortest = 9999999.0;
 		
 		for (int j = sphereCount; j < allSpheresCount; j++) {
 			float otherDist = distance(testPos, spheres[j]) - spheres[j].w;
@@ -100,10 +103,10 @@ vec4 Raycast(vec3 pos, vec3 dir, int lit)
 			shortest = min(shortest, otherDist);
 		}
 		
-		ballDist += smoothDist;
+		ballDist += smoothDist + minstep;
 	}
 	
-	int checkstep = step(0.1, smoothDist);
+	int checkstep = step(minstep, smoothDist);
 
 	// Draw either wall or ball based on checkstep
 	totalDist = checkstep * totalDist + (1-checkstep) * ballDist;
