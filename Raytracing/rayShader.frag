@@ -67,6 +67,7 @@ vec4 Raycast(vec3 pos, vec3 dir, int lit)
 	float totalDist = 0.0;
 	float normalsign = -1.0;
 
+	// Find furthest wall
 	for (int j = 0; j < sphereCount*3; j++) {
 		int i = j%sphereCount;
 		vec3 rpos = pos-spheres[i].xyz;
@@ -83,53 +84,57 @@ vec4 Raycast(vec3 pos, vec3 dir, int lit)
 		totalDist += tosurf;
 	}
 	
+	// Apply texture
 	vec3 rpos = pos-spheres[drawSphere].xyz;
 	float ycoord = mod(rpos.y / (0.8 + 0.2 * (abs(rpos.x) + abs(rpos.z))), uvs[drawSphere].x) + uvs[drawSphere].w;
 	float xcoord = mod(min(abs(rpos.z), abs(rpos.x)), uvs[drawSphere].x) + uvs[drawSphere].z;
 	vec4 c = textureLod(ground, vec2(xcoord, ycoord), totalDist*0.05);
+	
+	float wallDist = totalDist;
+	float ballDist = 0;
+	float shortest = 999999999;
+	float n = 0;
+	float smoothDist = 999999999;
 
-	for (int i = sphereCount; i < allSpheresCount; i++) {
-		vec3 tos = spheres[i].xyz-campos;
-		float toslen = length(tos);
-		vec3 testPos = campos + dir * toslen;
-		float testDist = distance(testPos, spheres[i])-spheres[i].w;
-		float smoothDist = testDist;
-		float shortest = testDist;
-		float closest = i;
+	while (ballDist < wallDist && smoothDist > 0.1) {
+		vec3 testPos = campos + dir * ballDist;
+		smoothDist = 999999999;
 		
 		for (int j = sphereCount; j < allSpheresCount; j++) {
-			float otherDist = distance(testPos, spheres[j]) - spheres[j].w + (1-abs(sign(i-j)))*999999;
-			smoothDist = min(smoothDist, polsmin(testDist, otherDist, 0.5));
-			closest = step(shortest, otherDist) * closest + (1-step(shortest, otherDist)) * j;
+			float otherDist = distance(testPos, spheres[j]) - spheres[j].w;
+			smoothDist = polsmin(smoothDist, otherDist, 0.5);
+			n = step(shortest, otherDist) * n + (1-step(shortest, otherDist)) * j;
 			shortest = min(shortest, otherDist);
 		}
-	
-		//toslen += minAndSphere.x;
-		int checkstep = sign( step(0.1, min(smoothDist, shortest)) + step(totalDist, toslen) + abs(i-closest) );
-
-		vec3 tosn = tos / toslen;
-		float sangY = asin(dir.y) - asin(tosn.y);
-		float sangt = atan(spheres[i].w, toslen);
 		
-		vec3 tpos = ((campos + dir * toslen)-spheres[i].xyz) / spheres[i].w;
-		float sangXZ = atan(tpos.z, tpos.x);
-		
-		// Texture coordinates
-		float yc = mod(-0.25 * sangY/sangt + uvs[i].x*0.5, uvs[i].x) + uvs[i].w;
-		float xc = mod(0.125 * sangXZ + uvs[i].x*0.5, uvs[i].x) + uvs[i].z;
-		vec4 tc = textureLod(ground, vec2(xc, yc), toslen*0.05);
-		
-		// Use texture or color based on alpha check
-		tc.a = max(lights[i].a, tc.a);
-		
-		// Set variables to draw this sphere
-		c = checkstep * c + (1-checkstep) * tc;
-		totalDist = checkstep * totalDist + (1-checkstep) * toslen;
-		drawSphere = checkstep * drawSphere + (1-checkstep) * i;
-		pos = checkstep * pos + (1-checkstep) * (campos + dir * toslen);
-		normalsign = checkstep * normalsign + (1-checkstep);
-		rpos = checkstep * rpos + (1-checkstep) * tpos * spheres[i].w;
+		ballDist += smoothDist;
 	}
+	
+	int checkstep = step(0.1, smoothDist);
+
+	vec3 tos = spheres[n] - campos;
+	vec3 tosn = tos / ballDist;
+	float sangY = asin(dir.y) - asin(tosn.y);
+	float sangt = atan(spheres[n].w, ballDist);
+	
+	vec3 tpos = ((campos + dir * ballDist)-spheres[n].xyz) / spheres[n].w;
+	float sangXZ = atan(tpos.z, tpos.x);
+	
+	// Texture coordinates
+	float yc = mod(-0.25 * sangY/sangt + uvs[n].x*0.5, uvs[n].x) + uvs[n].w;
+	float xc = mod(0.125 * sangXZ + uvs[n].x*0.5, uvs[n].x) + uvs[n].z;
+	vec4 tc = textureLod(ground, vec2(xc, yc), ballDist*0.05);
+	
+	// Use texture or color based on alpha check
+	tc.a = max(lights[n].a, tc.a);
+	
+	// Set variables to draw this sphere
+	c = checkstep * c + (1-checkstep) * tc;
+	totalDist = checkstep * totalDist + (1-checkstep) * ballDist;
+	drawSphere = checkstep * drawSphere + (1-checkstep) * n;
+	pos = checkstep * pos + (1-checkstep) * (campos + dir * ballDist);
+	normalsign = checkstep * normalsign + (1-checkstep);
+	rpos = checkstep * rpos + (1-checkstep) * tpos * spheres[n].w;
 
 	float brightness = lit * 1.0 / max(totalDist, 1.0);
 	
