@@ -25,6 +25,7 @@ struct Sphere {
 	float radius = 5.0f;
 	sf::Glsl::Vec4 light;
 	sf::Vector3f move = { 0,0,0 };
+	sf::Vector3f moveTarget = { 0,0,0 };
 };
 
 struct Ray {

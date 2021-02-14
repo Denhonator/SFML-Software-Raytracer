@@ -89,18 +89,23 @@ vec4 Raycast(vec3 pos, vec3 dir, int lit)
 	int closest = 0;
 	float smoothDist = 999999999.0;
 	float minstep = 0.01;
+	vec3 smoothNormal = vec3(0,0,0);
 
 	while (ballDist < totalDist && smoothDist > minstep) {
 		vec3 testPos = campos + dir * ballDist;
 		smoothDist = 999999999;
 		closest = 0;
 		shortest = 9999999.0;
+		smoothNormal = vec3(0,0,0);
 		
 		for (int j = sphereCount; j < allSpheresCount; j++) {
-			float otherDist = distance(testPos, spheres[j]) - spheres[j].w;
+			vec3 tos = spheres[j].xyz - testPos;
+			float otherDist = length(tos) - spheres[j].w;
 			smoothDist = polsmin(smoothDist, otherDist, 0.5);
 			closest = step(shortest, otherDist) * closest + (1-step(shortest, otherDist)) * j;
 			shortest = min(shortest, otherDist);
+			float normalFactor = clamp(otherDist, 0.0, 0.5) * 2.0;
+			smoothNormal = normalFactor * smoothNormal - (1.0-normalFactor) * tos;
 		}
 		
 		ballDist += smoothDist + minstep;
@@ -115,7 +120,7 @@ vec4 Raycast(vec3 pos, vec3 dir, int lit)
 	normalsign = checkstep * normalsign + (1-checkstep);
 	
 	// Apply texture
-	vec3 rpos = pos-spheres[drawSphere].xyz;
+	vec3 rpos = smoothNormal * (1.0-checkstep) + checkstep * (pos-spheres[drawSphere].xyz);
 	float ycoord = mod(rpos.y / (0.8 + 0.2 * (abs(rpos.x) + abs(rpos.z))), uvs[drawSphere].x) + uvs[drawSphere].w;
 	float xcoord = mod(min(abs(rpos.z), abs(rpos.x)), uvs[drawSphere].x) + uvs[drawSphere].z;
 	vec4 c = textureLod(ground, vec2(xcoord, ycoord), totalDist*0.05);
@@ -131,7 +136,7 @@ vec4 Raycast(vec3 pos, vec3 dir, int lit)
 		float normalMult = length(normalize(rpos*normalsign)+tolightnorm)-1.0;
 		
 		float shadow = 1.0;
-		for(int j=sphereCount+lightCount; j<allSpheresCount; j++){
+		for(int j=sphereCount+lightCount; j<allSpheresCount && drawSphere<j; j++){
 			float lightshadowdist = distance(spheres[i].xyz, spheres[j].xyz);
 			float sanglet = atan(spheres[j].w, lightshadowdist);
 			float sangle = acos(dot(-tolightnorm, (spheres[j].xyz-spheres[i].xyz)/lightshadowdist));

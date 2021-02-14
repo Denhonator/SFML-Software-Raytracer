@@ -118,7 +118,12 @@ void SphereWorld::UpdateWorld()
 	}
 	
 	for (int i = 0; i < ospheres.size(); i++) {
-		ospheres.at(i).pos += ospheres.at(i).move * 0.05f;
+		ospheres.at(i).pos += ospheres.at(i).move * 0.01f;
+		ospheres.at(i).move = 0.99f * ospheres.at(i).move + 0.01f * ospheres.at(i).moveTarget;
+		if (rand() % 100 == 0) {
+			ospheres.at(i).moveTarget = sf::Vector3f(rand() % 3 - 1, rand() % 3 - 1, rand() % 3 - 1);
+		}
+		
 		bool isinside = false;
 		float smallestDist = 9999;
 		int index = 0;
